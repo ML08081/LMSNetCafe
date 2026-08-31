@@ -6,6 +6,7 @@ USE lms_netcafe;
 
 CREATE TABLE IF NOT EXISTS sys_user (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  member_id BIGINT NULL,
   username VARCHAR(64) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   real_name VARCHAR(64) NOT NULL,
@@ -15,8 +16,41 @@ CREATE TABLE IF NOT EXISTS sys_user (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_sys_user_username (username)
+  UNIQUE KEY uk_sys_user_username (username),
+  UNIQUE KEY uk_sys_user_member (member_id)
 );
+
+SET @member_id_column_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'sys_user'
+    AND COLUMN_NAME = 'member_id'
+);
+SET @add_member_id_sql = IF(
+  @member_id_column_exists = 0,
+  'ALTER TABLE sys_user ADD COLUMN member_id BIGINT NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE add_member_id_statement FROM @add_member_id_sql;
+EXECUTE add_member_id_statement;
+DEALLOCATE PREPARE add_member_id_statement;
+
+SET @member_id_index_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'sys_user'
+    AND INDEX_NAME = 'uk_sys_user_member'
+);
+SET @add_member_id_index_sql = IF(
+  @member_id_index_exists = 0,
+  'ALTER TABLE sys_user ADD UNIQUE KEY uk_sys_user_member (member_id)',
+  'SELECT 1'
+);
+PREPARE add_member_id_index_statement FROM @add_member_id_index_sql;
+EXECUTE add_member_id_index_statement;
+DEALLOCATE PREPARE add_member_id_index_statement;
 
 CREATE TABLE IF NOT EXISTS sys_role (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -26,6 +60,35 @@ CREATE TABLE IF NOT EXISTS sys_role (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_sys_role_code (role_code)
+);
+
+CREATE TABLE IF NOT EXISTS sys_user_role (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  role_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_user_role (user_id, role_id),
+  KEY idx_sys_user_role_role (role_id)
+);
+
+CREATE TABLE IF NOT EXISTS sys_permission (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  permission_code VARCHAR(128) NOT NULL,
+  permission_name VARCHAR(128) NOT NULL,
+  permission_type VARCHAR(20) NOT NULL DEFAULT 'MENU',
+  route_path VARCHAR(255),
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_permission_code (permission_code)
+);
+
+CREATE TABLE IF NOT EXISTS sys_role_permission (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  role_id BIGINT NOT NULL,
+  permission_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_role_permission (role_id, permission_id),
+  KEY idx_sys_role_permission_permission (permission_id)
 );
 
 CREATE TABLE IF NOT EXISTS member_info (
@@ -53,6 +116,22 @@ CREATE TABLE IF NOT EXISTS member_account (
   version INT NOT NULL DEFAULT 0,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_member_account_member (member_id)
+);
+
+CREATE TABLE IF NOT EXISTS member_account_flow (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  flow_no VARCHAR(64) NOT NULL,
+  member_id BIGINT NOT NULL,
+  related_id BIGINT,
+  related_type VARCHAR(32) NOT NULL,
+  change_amount DECIMAL(10,2) NOT NULL,
+  balance_before DECIMAL(10,2) NOT NULL,
+  balance_after DECIMAL(10,2) NOT NULL,
+  operator_id BIGINT,
+  remark VARCHAR(255),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_member_account_flow_no (flow_no),
+  KEY idx_account_flow_member_created (member_id, created_at)
 );
 
 CREATE TABLE IF NOT EXISTS recharge_record (
@@ -172,14 +251,158 @@ CREATE TABLE IF NOT EXISTS repair_record (
   repaired_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT IGNORE INTO sys_role (id, role_code, role_name) VALUES
-  (1, 'admin', '超级管理员'),
-  (2, 'manager', '店长'),
-  (3, 'cashier', '前台收银'),
-  (4, 'repair', '维修人员');
+CREATE TABLE IF NOT EXISTS client_device (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  device_id BIGINT NOT NULL,
+  device_code VARCHAR(32) NOT NULL,
+  client_token VARCHAR(128),
+  app_version VARCHAR(32),
+  online_status VARCHAR(20) NOT NULL DEFAULT 'OFFLINE',
+  last_heartbeat_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_client_device_code (device_code),
+  KEY idx_client_device_status (online_status)
+);
 
-INSERT IGNORE INTO sys_user (id, username, password_hash, real_name, status) VALUES
-  (1, 'admin', '{noop}123456', '系统管理员', 'ENABLED');
+CREATE TABLE IF NOT EXISTS operation_log (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  operator_id BIGINT,
+  module_name VARCHAR(64) NOT NULL,
+  operation_type VARCHAR(64) NOT NULL,
+  target_id BIGINT,
+  request_summary VARCHAR(500),
+  result VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_operation_log_operator_created (operator_id, created_at),
+  KEY idx_operation_log_module_created (module_name, created_at)
+);
+
+INSERT INTO sys_role (id, role_code, role_name, status) VALUES
+  (1, 'super_admin', '超级管理员', 'ENABLED'),
+  (2, 'front_desk', '前台人员', 'ENABLED'),
+  (3, 'customer', '普通用户', 'ENABLED')
+ON DUPLICATE KEY UPDATE
+  role_code = VALUES(role_code),
+  role_name = VALUES(role_name),
+  status = VALUES(status);
+
+DELETE FROM sys_user_role;
+DELETE FROM sys_role_permission;
+DELETE FROM sys_role WHERE id NOT IN (1, 2, 3);
+
+INSERT INTO sys_user (id, member_id, username, password_hash, real_name, status, deleted) VALUES
+  (1, NULL, 'admin', '{noop}123456', '系统管理员', 'ENABLED', 0),
+  (3, NULL, 'cashier', '{noop}123456', '前台人员', 'ENABLED', 0),
+  (5, 1, 'member001', '{noop}123456', '张三', 'ENABLED', 0)
+ON DUPLICATE KEY UPDATE
+  member_id = VALUES(member_id),
+  password_hash = VALUES(password_hash),
+  real_name = VALUES(real_name),
+  status = VALUES(status),
+  deleted = VALUES(deleted);
+
+UPDATE sys_user
+SET status = 'DISABLED', member_id = NULL, deleted = 1
+WHERE username IN ('manager', 'repair');
+
+INSERT INTO sys_user_role (user_id, role_id) VALUES
+  (1, 1),
+  (3, 2),
+  (5, 3);
+
+INSERT IGNORE INTO sys_permission (id, permission_code, permission_name, permission_type, route_path, sort_order) VALUES
+  (1, 'dashboard:view', '经营看板', 'MENU', '/', 10),
+  (2, 'workbench:view', '前台工作台', 'MENU', '/workbench', 20),
+  (3, 'member:manage', '会员管理', 'MENU', '/members', 30),
+  (4, 'device:manage', '设备管理', 'MENU', '/devices', 40),
+  (5, 'billing:manage', '计费规则', 'MENU', '/billing/rules', 50),
+  (6, 'session:view', '上机记录', 'MENU', '/sessions', 60),
+  (7, 'face:manage', '人脸认证', 'MENU', '/faces', 70),
+  (8, 'statistics:view', '数据统计', 'MENU', '/statistics', 80),
+  (9, 'system:user', '系统用户', 'MENU', '/system/users', 90),
+  (10, 'maintenance:manage', '维修维护', 'MENU', '/maintenance', 100),
+  (11, 'portal:home', '我的首页', 'MENU', '/portal', 110),
+  (12, 'portal:account', '我的账户', 'MENU', '/portal/account', 120),
+  (13, 'portal:sessions', '上机记录', 'MENU', '/portal/sessions', 130),
+  (14, 'portal:devices', '机位与计费', 'MENU', '/portal/devices', 140),
+  (15, 'portal:support', '故障反馈', 'MENU', '/portal/support', 150),
+  (16, 'device:view', '设备监控', 'API', '/devices', 45);
+
+INSERT INTO sys_role_permission (role_id, permission_id)
+SELECT 1, id FROM sys_permission WHERE id NOT BETWEEN 11 AND 15;
+
+INSERT INTO sys_role_permission (role_id, permission_id) VALUES
+  (2, 1), (2, 2), (2, 3), (2, 5), (2, 6), (2, 7), (2, 16),
+  (3, 11), (3, 12), (3, 13), (3, 14), (3, 15);
 
 INSERT IGNORE INTO billing_rule (id, rule_name, price_per_hour, min_minutes, billing_unit_minutes, low_balance_threshold) VALUES
-  (1, '默认计费规则', 10.00, 15, 15, 10.00);
+  (1, '默认计费规则', 10.00, 15, 15, 10.00),
+  (2, 'VIP 包间规则', 18.00, 30, 15, 20.00),
+  (3, '包夜规则', 50.00, 360, 360, 10.00);
+
+INSERT IGNORE INTO member_info (id, member_no, name, phone, id_card_no, level, status) VALUES
+  (1, 'M0001', '张三', '13800000001', 'MASKED-0001', 'NORMAL', 'ACTIVE'),
+  (2, 'M0002', '李四', '13800000002', 'MASKED-0002', 'VIP', 'ACTIVE'),
+  (3, 'M0003', '王五', '13800000003', 'MASKED-0003', 'NORMAL', 'FROZEN'),
+  (4, 'M0004', '赵六', '13800000004', 'MASKED-0004', 'NORMAL', 'ACTIVE');
+
+INSERT IGNORE INTO member_account (id, member_id, balance, total_recharge, total_consume) VALUES
+  (1, 1, 57.30, 100.00, 42.70),
+  (2, 2, 6.50, 60.00, 53.50),
+  (3, 3, 0.00, 0.00, 0.00),
+  (4, 4, 88.00, 120.00, 32.00);
+
+INSERT IGNORE INTO device_info (id, device_code, area, seat_no, ip_address, config_desc, status) VALUES
+  (1, 'PC-A01', 'A区', 'A01', '192.168.1.101', 'RTX 4060 / 32G', 'IN_USE'),
+  (2, 'PC-A02', 'A区', 'A02', '192.168.1.102', 'RTX 4060 / 32G', 'IDLE'),
+  (3, 'PC-A03', 'A区', 'A03', '192.168.1.103', 'RTX 3060 / 16G', 'MAINTENANCE'),
+  (4, 'PC-A04', 'A区', 'A04', '192.168.1.104', 'RTX 3060 / 16G', 'FAULT'),
+  (5, 'PC-A05', 'A区', 'A05', '192.168.1.105', 'RTX 4060 / 32G', 'IN_USE'),
+  (6, 'PC-A06', 'A区', 'A06', '192.168.1.106', 'RTX 4060 / 32G', 'IDLE'),
+  (7, 'PC-B01', 'B区', 'B01', '192.168.1.121', 'RTX 4070 / 32G', 'IN_USE'),
+  (8, 'PC-B02', 'B区', 'B02', '192.168.1.122', 'RTX 4070 / 32G', 'IDLE'),
+  (9, 'PC-B03', 'B区', 'B03', '192.168.1.123', 'RTX 4070 / 32G', 'IN_USE'),
+  (10, 'PC-VIP01', 'VIP区', 'V01', '192.168.1.151', 'RTX 4080 / 64G', 'IDLE');
+
+INSERT IGNORE INTO machine_session (id, session_no, member_id, device_id, billing_rule_id, start_at, end_at, duration_minutes, estimated_amount, final_amount, status, operator_id, settled_by) VALUES
+  (1, 'S202608310001', 1, 1, 1, '2026-08-31 08:10:00', NULL, NULL, 12.70, NULL, 'RUNNING', 3, NULL),
+  (2, 'S202608310002', 2, 5, 1, '2026-08-31 07:42:00', NULL, NULL, 17.40, NULL, 'RUNNING', 3, NULL),
+  (3, 'S202608300012', 4, 8, 1, '2026-08-30 19:00:00', '2026-08-30 21:18:00', 138, 23.00, 23.00, 'ENDED', 3, 3);
+
+INSERT IGNORE INTO recharge_record (id, recharge_no, member_id, amount, gift_amount, pay_method, operator_id, remark, created_at) VALUES
+  (1, 'R202608310001', 1, 100.00, 0.00, 'CASH', 3, '演示充值', '2026-08-31 08:00:00'),
+  (2, 'R202608310002', 2, 60.00, 0.00, 'WECHAT', 3, '演示充值', '2026-08-31 08:05:00'),
+  (3, 'R202608300001', 4, 120.00, 0.00, 'ALIPAY', 3, '演示充值', '2026-08-30 18:30:00');
+
+INSERT IGNORE INTO consume_record (id, consume_no, member_id, session_id, consume_type, amount, balance_after, operator_id, created_at) VALUES
+  (1, 'C202608300001', 4, 3, 'MACHINE', 23.00, 97.00, 3, '2026-08-30 21:18:00'),
+  (2, 'C202608310001', 1, 1, 'MACHINE', 42.70, 57.30, 3, '2026-08-31 09:20:00'),
+  (3, 'C202608310002', 2, 2, 'MACHINE', 53.50, 6.50, 3, '2026-08-31 09:21:00');
+
+INSERT IGNORE INTO member_account_flow (id, flow_no, member_id, related_id, related_type, change_amount, balance_before, balance_after, operator_id, remark, created_at) VALUES
+  (1, 'F202608310001', 1, 1, 'RECHARGE', 100.00, 0.00, 100.00, 3, '会员充值', '2026-08-31 08:00:00'),
+  (2, 'F202608310002', 1, 2, 'CONSUME', -42.70, 100.00, 57.30, 3, '上机消费', '2026-08-31 09:20:00'),
+  (3, 'F202608310003', 2, 2, 'RECHARGE', 60.00, 0.00, 60.00, 3, '会员充值', '2026-08-31 08:05:00'),
+  (4, 'F202608310004', 2, 3, 'CONSUME', -53.50, 60.00, 6.50, 3, '上机消费', '2026-08-31 09:21:00');
+
+INSERT IGNORE INTO face_profile (id, member_id, feature_ref, image_ref, quality_score, status) VALUES
+  (1, 1, 'features/member-1.bin', NULL, 86.50, 'ACTIVE'),
+  (2, 2, 'features/member-2.bin', NULL, 82.00, 'ACTIVE');
+
+INSERT IGNORE INTO device_fault (id, device_id, fault_type, description, status, reported_by, reported_at) VALUES
+  (1, 4, 'USER_REPORT', '耳机左声道无声音，请协助检查。', 'OPEN', 5, '2026-08-31 09:30:00');
+
+INSERT IGNORE INTO client_device (id, device_id, device_code, client_token, app_version, online_status, last_heartbeat_at) VALUES
+  (1, 1, 'PC-A01', 'dev-token-pc-a01', '0.1.0', 'ONLINE', '2026-08-31 09:20:00'),
+  (2, 2, 'PC-A02', 'dev-token-pc-a02', '0.1.0', 'OFFLINE', NULL);
+
+DROP VIEW IF EXISTS v_dashboard_summary;
+
+CREATE VIEW v_dashboard_summary AS
+SELECT
+  (SELECT COUNT(*) FROM machine_session WHERE status = 'RUNNING') AS running_sessions,
+  (SELECT COUNT(*) FROM device_info WHERE status = 'IDLE' AND deleted = 0) AS idle_devices,
+  (SELECT COUNT(*) FROM device_info WHERE status = 'FAULT' AND deleted = 0) AS fault_devices,
+  (SELECT COALESCE(SUM(amount), 0) FROM recharge_record WHERE DATE(created_at) = CURRENT_DATE) AS today_recharge,
+  (SELECT COALESCE(SUM(amount), 0) FROM consume_record WHERE DATE(created_at) = CURRENT_DATE) AS today_consume;

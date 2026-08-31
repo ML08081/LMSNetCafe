@@ -25,6 +25,9 @@ node_modules/
 dist/
 dist-electron/
 .vite/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 # Python
 __pycache__/
