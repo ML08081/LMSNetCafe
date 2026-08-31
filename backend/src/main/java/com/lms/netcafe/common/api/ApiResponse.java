@@ -6,14 +6,14 @@ import java.time.format.DateTimeFormatter;
 public record ApiResponse<T>(int code, String message, T data, String traceId) {
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(0, "success", data, traceId());
+        return new ApiResponse<>(0, "success", data, createTraceId());
     }
 
     public static <T> ApiResponse<T> fail(int code, String message) {
-        return new ApiResponse<>(code, message, null, traceId());
+        return new ApiResponse<>(code, message, null, createTraceId());
     }
 
-    private static String traceId() {
+    private static String createTraceId() {
         return DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS").format(OffsetDateTime.now());
     }
 }
