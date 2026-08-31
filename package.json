@@ -1,0 +1,16 @@
+{
+  "name": "lms-netcafe",
+  "private": true,
+  "version": "0.1.0",
+  "description": "LMSNetCafe monorepo workspace",
+  "scripts": {
+    "dev:admin": "npm --prefix frontend-admin run dev",
+    "dev:pet": "npm --prefix desktop-pet run dev",
+    "build:admin": "npm --prefix frontend-admin run build",
+    "build:pet": "npm --prefix desktop-pet run build"
+  },
+  "workspaces": [
+    "frontend-admin",
+    "desktop-pet"
+  ]
+}

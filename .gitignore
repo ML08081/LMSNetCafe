@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Java / Maven
+target/
+*.class
+
+# Node
+node_modules/
+dist/
+dist-electron/
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Runtime data
+face-service/data/features/*
+face-service/data/uploads/*
+!face-service/data/features/.gitkeep
+!face-service/data/uploads/.gitkeep
