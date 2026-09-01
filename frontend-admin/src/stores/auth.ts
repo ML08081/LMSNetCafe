@@ -46,8 +46,20 @@ export const useAuthStore = defineStore('auth', {
       if (response.data.code !== 0) {
         throw new Error(response.data.message)
       }
-      this.token = response.data.data.token
-      this.user = response.data.data.user
+      this.persistLogin(response.data.data)
+    },
+    async faceLogin(image: Blob) {
+      const payload = new FormData()
+      payload.append('image', image, 'face-login.jpg')
+      const response = await http.post<ApiResponse<LoginResponse>>('/auth/face-login', payload)
+      if (response.data.code !== 0) {
+        throw new Error(response.data.message)
+      }
+      this.persistLogin(response.data.data)
+    },
+    persistLogin(login: LoginResponse) {
+      this.token = login.token
+      this.user = login.user
       localStorage.setItem('lms-token', this.token)
       localStorage.setItem('lms-user', JSON.stringify(this.user))
     },

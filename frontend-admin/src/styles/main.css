@@ -283,6 +283,102 @@ body {
   font-size: 42px;
 }
 
+.face-workspace {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.8fr) minmax(620px, 1.2fr);
+  gap: 16px;
+}
+
+.face-capture-panel {
+  align-self: start;
+}
+
+.camera-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.camera-stage {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background: #111820;
+}
+
+.camera-stage video,
+.camera-stage img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.camera-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #b8c3cf;
+  text-align: center;
+}
+
+.camera-empty .el-icon { font-size: 42px; }
+.camera-empty strong { color: #edf2f7; font-size: 15px; }
+.camera-empty span { font-size: 12px; line-height: 1.5; }
+
+.face-guide {
+  width: 42%;
+  aspect-ratio: 3 / 4;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 2px solid rgba(255, 255, 255, .76);
+  border-radius: 48%;
+  box-shadow: 0 0 0 999px rgba(5, 11, 17, .18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.camera-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.camera-error,
+.face-privacy {
+  margin: 0;
+  color: #c13d3d;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.face-profile-meta {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #edf1f5;
+  color: #6b7684;
+  font-size: 12px;
+}
+
+.face-profile-meta .el-button { margin-left: auto; }
+.table-secondary { display: block; margin-top: 3px; color: #87919c; font-size: 11px; }
+
 .login-page {
   min-height: 100vh;
   display: grid;
@@ -315,6 +411,24 @@ body {
 
 .login-panel .el-button {
   width: 100%;
+}
+
+.login-panel > .el-segmented {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.login-panel.is-face-mode {
+  width: min(520px, 100%);
+}
+
+.face-login-pane .camera-stage {
+  max-height: 310px;
+}
+
+.login-panel .face-privacy {
+  margin: 10px 0 0;
+  color: #7d8896;
 }
 
 .login-users {
@@ -470,6 +584,67 @@ body {
   font-size: 25px;
 }
 
+.pet-setting-panel { margin-top: 16px; }
+.panel-description { margin: 4px 0 0; color: #7d8896; font-size: 12px; }
+.pet-setting-options {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px; transition: opacity .2s ease;
+}
+.pet-setting-options.disabled { opacity: .55; }
+.pet-setting-options label {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  min-width: 0; padding: 13px 14px; border: 1px solid #e3e8ed; border-radius: 7px;
+}
+.pet-setting-options strong, .pet-setting-options small { display: block; }
+.pet-setting-options small { margin-top: 4px; color: #7d8896; font-size: 12px; }
+.service-balance {
+  display: flex; align-items: baseline; gap: 10px; padding: 9px 13px;
+  border: 1px solid #b9dfd3; border-radius: 7px; background: #f4fbf8;
+}
+.service-balance span { color: #617068; font-size: 12px; }
+.service-balance strong { color: #168266; font-size: 21px; }
+.quick-call-panel { margin-bottom: 16px; }
+.quick-call-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.quick-call-grid .el-button {
+  width: 100%; height: 64px; margin: 0; padding: 8px 12px;
+  justify-content: flex-start; white-space: normal;
+}
+.quick-call-grid .el-icon { flex: 0 0 auto; color: #168266; font-size: 22px; }
+.quick-call-grid span { min-width: 0; text-align: left; }
+.quick-call-grid strong, .quick-call-grid small { display: block; }
+.quick-call-grid small { margin-top: 3px; color: #7d8896; font-size: 11px; }
+.service-market-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.product-toolbar { flex-wrap: wrap; }
+.product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.product-item {
+  min-width: 0; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center; gap: 10px; padding: 11px; border: 1px solid #e3e8ed; border-radius: 7px;
+}
+.product-symbol {
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 7px;
+  background: #eaf6f2; color: #168266; font-size: 22px;
+}
+.product-symbol.category-snack { background: #fff4dc; color: #a56c0b; }
+.product-symbol.category-meal { background: #feeceb; color: #b8493e; }
+.product-copy { min-width: 0; }
+.product-copy strong, .product-copy span, .product-copy b { display: block; overflow-wrap: anywhere; }
+.product-copy span { margin: 3px 0; color: #7d8896; font-size: 11px; }
+.product-copy b { color: #168266; font-size: 14px; }
+.product-item .el-input-number { width: 96px; }
+.cart-panel { position: sticky; top: 0; }
+.cart-lines { max-height: 210px; overflow: auto; margin-bottom: 12px; }
+.cart-lines > div, .cart-total {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid #edf0f2; font-size: 13px;
+}
+.cart-total { margin: 12px 0; align-items: baseline; border-top: 1px solid #dfe5ea; border-bottom: 0; }
+.cart-total strong { color: #168266; font-size: 22px; }
+.cart-panel > .el-button { width: 100%; }
+.service-history-panel { margin-top: 16px; }
+.service-desk-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.table-secondary { display: block; margin-top: 2px; color: #8a949f; font-size: 10px; }
+.el-tabs__item .el-badge { margin-left: 7px; }
+
 .amount-in {
   color: #168266;
 }
@@ -575,9 +750,16 @@ body {
   }
 
   .support-grid,
-  .session-focus {
+  .session-focus,
+  .face-workspace,
+  .service-market-grid {
     grid-template-columns: 1fr;
   }
+
+  .quick-call-grid,
+  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .cart-panel { position: static; }
 }
 
 @media (max-width: 720px) {
@@ -607,7 +789,11 @@ body {
   }
 
   .portal-actions,
-  .demo-accounts {
+  .demo-accounts,
+  .pet-setting-options,
+  .quick-call-grid,
+  .product-grid,
+  .service-desk-metrics {
     grid-template-columns: 1fr;
   }
 

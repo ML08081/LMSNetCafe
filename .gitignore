@@ -9,7 +9,11 @@ Thumbs.db
 
 # Logs
 logs/
+.dev-logs/
 *.log
+
+# Superseded local desktop-pet artwork
+desktop-pet/public/wuhuang-cat.png
 
 # Environment
 .env

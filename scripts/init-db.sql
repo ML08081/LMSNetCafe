@@ -212,18 +212,55 @@ CREATE TABLE IF NOT EXISTS consume_record (
 
 CREATE TABLE IF NOT EXISTS face_profile (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  member_id BIGINT NOT NULL,
+  sys_user_id BIGINT NULL,
+  member_id BIGINT NULL,
   feature_ref VARCHAR(255) NOT NULL,
   image_ref VARCHAR(255),
   quality_score DECIMAL(5,2),
   status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
   enrolled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_face_profile_user (sys_user_id),
   UNIQUE KEY uk_face_profile_member (member_id)
 );
 
+SET @face_user_column_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'face_profile'
+    AND COLUMN_NAME = 'sys_user_id'
+);
+SET @add_face_user_sql = IF(
+  @face_user_column_exists = 0,
+  'ALTER TABLE face_profile ADD COLUMN sys_user_id BIGINT NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE add_face_user_statement FROM @add_face_user_sql;
+EXECUTE add_face_user_statement;
+DEALLOCATE PREPARE add_face_user_statement;
+
+ALTER TABLE face_profile MODIFY COLUMN member_id BIGINT NULL;
+
+SET @face_user_index_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'face_profile'
+    AND INDEX_NAME = 'uk_face_profile_user'
+);
+SET @add_face_user_index_sql = IF(
+  @face_user_index_exists = 0,
+  'ALTER TABLE face_profile ADD UNIQUE KEY uk_face_profile_user (sys_user_id)',
+  'SELECT 1'
+);
+PREPARE add_face_user_index_statement FROM @add_face_user_index_sql;
+EXECUTE add_face_user_index_statement;
+DEALLOCATE PREPARE add_face_user_index_statement;
+
 CREATE TABLE IF NOT EXISTS face_verify_log (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  sys_user_id BIGINT,
   member_id BIGINT,
   session_id BIGINT,
   device_id BIGINT,
@@ -232,6 +269,22 @@ CREATE TABLE IF NOT EXISTS face_verify_log (
   fail_reason VARCHAR(255),
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+SET @face_log_user_column_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'face_verify_log'
+    AND COLUMN_NAME = 'sys_user_id'
+);
+SET @add_face_log_user_sql = IF(
+  @face_log_user_column_exists = 0,
+  'ALTER TABLE face_verify_log ADD COLUMN sys_user_id BIGINT NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE add_face_log_user_statement FROM @add_face_log_user_sql;
+EXECUTE add_face_log_user_statement;
+DEALLOCATE PREPARE add_face_log_user_statement;
 
 CREATE TABLE IF NOT EXISTS device_fault (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -263,6 +316,76 @@ CREATE TABLE IF NOT EXISTS client_device (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_client_device_code (device_code),
   KEY idx_client_device_status (online_status)
+);
+
+CREATE TABLE IF NOT EXISTS member_pet_setting (
+  member_id BIGINT PRIMARY KEY,
+  enabled TINYINT NOT NULL DEFAULT 1,
+  always_on_top TINYINT NOT NULL DEFAULT 1,
+  show_bubble TINYINT NOT NULL DEFAULT 1,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS service_call (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  call_no VARCHAR(64) NOT NULL,
+  member_id BIGINT NOT NULL,
+  device_id BIGINT,
+  call_type VARCHAR(32) NOT NULL,
+  message VARCHAR(255),
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  handled_by BIGINT,
+  handled_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_service_call_no (call_no),
+  KEY idx_service_call_status_created (status, created_at),
+  KEY idx_service_call_member_created (member_id, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS shop_product (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  product_code VARCHAR(32) NOT NULL,
+  product_name VARCHAR(64) NOT NULL,
+  category VARCHAR(32) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  stock INT NOT NULL DEFAULT 0,
+  status VARCHAR(20) NOT NULL DEFAULT 'ENABLED',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_shop_product_code (product_code),
+  KEY idx_shop_product_category_status (category, status)
+);
+
+CREATE TABLE IF NOT EXISTS shop_order (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(64) NOT NULL,
+  member_id BIGINT NOT NULL,
+  device_id BIGINT,
+  total_amount DECIMAL(10,2) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  remark VARCHAR(255),
+  handled_by BIGINT,
+  paid_at DATETIME NOT NULL,
+  completed_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_shop_order_no (order_no),
+  KEY idx_shop_order_status_created (status, created_at),
+  KEY idx_shop_order_member_created (member_id, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS shop_order_item (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  product_name VARCHAR(64) NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL,
+  quantity INT NOT NULL,
+  subtotal DECIMAL(10,2) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_shop_order_item_order (order_id)
 );
 
 CREATE TABLE IF NOT EXISTS operation_log (
@@ -327,14 +450,16 @@ INSERT IGNORE INTO sys_permission (id, permission_code, permission_name, permiss
   (13, 'portal:sessions', '上机记录', 'MENU', '/portal/sessions', 130),
   (14, 'portal:devices', '机位与计费', 'MENU', '/portal/devices', 140),
   (15, 'portal:support', '故障反馈', 'MENU', '/portal/support', 150),
-  (16, 'device:view', '设备监控', 'API', '/devices', 45);
+  (16, 'device:view', '设备监控', 'API', '/devices', 45),
+  (17, 'portal:services', '呼叫与点餐', 'MENU', '/portal/services', 145),
+  (18, 'service:manage', '服务与订单', 'MENU', '/service-desk', 75);
 
 INSERT INTO sys_role_permission (role_id, permission_id)
-SELECT 1, id FROM sys_permission WHERE id NOT BETWEEN 11 AND 15;
+SELECT 1, id FROM sys_permission WHERE id NOT BETWEEN 11 AND 17;
 
 INSERT INTO sys_role_permission (role_id, permission_id) VALUES
-  (2, 1), (2, 2), (2, 3), (2, 5), (2, 6), (2, 7), (2, 16),
-  (3, 11), (3, 12), (3, 13), (3, 14), (3, 15);
+  (2, 1), (2, 2), (2, 3), (2, 5), (2, 6), (2, 7), (2, 16), (2, 18),
+  (3, 11), (3, 12), (3, 13), (3, 14), (3, 15), (3, 17);
 
 INSERT IGNORE INTO billing_rule (id, rule_name, price_per_hour, min_minutes, billing_unit_minutes, low_balance_threshold) VALUES
   (1, '默认计费规则', 10.00, 15, 15, 10.00),
@@ -352,6 +477,26 @@ INSERT IGNORE INTO member_account (id, member_id, balance, total_recharge, total
   (2, 2, 6.50, 60.00, 53.50),
   (3, 3, 0.00, 0.00, 0.00),
   (4, 4, 88.00, 120.00, 32.00);
+
+INSERT INTO member_pet_setting (member_id, enabled, always_on_top, show_bubble) VALUES
+  (1, 1, 1, 1),
+  (2, 1, 1, 1),
+  (3, 1, 1, 1),
+  (4, 1, 1, 1)
+ON DUPLICATE KEY UPDATE member_id = VALUES(member_id);
+
+INSERT INTO shop_product (id, product_code, product_name, category, price, stock, status, sort_order) VALUES
+  (1, 'DRINK-COLA', '冰镇可乐', 'DRINK', 5.00, 80, 'ENABLED', 10),
+  (2, 'DRINK-TEA', '冰红茶', 'DRINK', 5.00, 60, 'ENABLED', 20),
+  (3, 'DRINK-COFFEE', '罐装咖啡', 'DRINK', 8.00, 40, 'ENABLED', 30),
+  (4, 'SNACK-CHIPS', '薯片', 'SNACK', 7.00, 50, 'ENABLED', 40),
+  (5, 'SNACK-SAUSAGE', '烤肠', 'SNACK', 6.00, 45, 'ENABLED', 50),
+  (6, 'SNACK-NUTS', '每日坚果', 'SNACK', 10.00, 35, 'ENABLED', 60),
+  (7, 'MEAL-NOODLES', '香辣牛肉面', 'MEAL', 12.00, 30, 'ENABLED', 70),
+  (8, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 22.00, 25, 'ENABLED', 80)
+ON DUPLICATE KEY UPDATE
+  product_name = VALUES(product_name), category = VALUES(category), price = VALUES(price),
+  status = VALUES(status), sort_order = VALUES(sort_order);
 
 INSERT IGNORE INTO device_info (id, device_code, area, seat_no, ip_address, config_desc, status) VALUES
   (1, 'PC-A01', 'A区', 'A01', '192.168.1.101', 'RTX 4060 / 32G', 'IN_USE'),
@@ -386,9 +531,13 @@ INSERT IGNORE INTO member_account_flow (id, flow_no, member_id, related_id, rela
   (3, 'F202608310003', 2, 2, 'RECHARGE', 60.00, 0.00, 60.00, 3, '会员充值', '2026-08-31 08:05:00'),
   (4, 'F202608310004', 2, 3, 'CONSUME', -53.50, 60.00, 6.50, 3, '上机消费', '2026-08-31 09:21:00');
 
-INSERT IGNORE INTO face_profile (id, member_id, feature_ref, image_ref, quality_score, status) VALUES
-  (1, 1, 'features/member-1.bin', NULL, 86.50, 'ACTIVE'),
-  (2, 2, 'features/member-2.bin', NULL, 82.00, 'ACTIVE');
+DELETE FROM face_profile
+WHERE feature_ref IN ('features/member-1.bin', 'features/member-2.bin');
+
+UPDATE face_profile fp
+JOIN sys_user u ON u.member_id = fp.member_id AND u.deleted = 0
+SET fp.sys_user_id = u.id
+WHERE fp.sys_user_id IS NULL;
 
 INSERT IGNORE INTO device_fault (id, device_id, fault_type, description, status, reported_by, reported_at) VALUES
   (1, 4, 'USER_REPORT', '耳机左声道无声音，请协助检查。', 'OPEN', 5, '2026-08-31 09:30:00');

@@ -1,14 +1,15 @@
 {
   "name": "desktop-pet",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5174",
-    "build": "vue-tsc -b && vite build",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --host 127.0.0.1 --port 5174",
+    "build": "vue-tsc -b && vite build && npm run build:electron",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "dist": "npm run build && npm run build:electron && electron-builder"
+    "dist": "npm run build && electron-builder"
   },
   "dependencies": {
     "pinia": "^2.2.4",
@@ -21,5 +22,12 @@
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
     "vue-tsc": "^2.1.6"
+  },
+  "build": {
+    "appId": "com.lms.netcafe.pet",
+    "productName": "LMS网咖桌宠",
+    "files": ["dist/**/*", "dist-electron/**/*", "package.json"],
+    "extraResources": [{ "from": "public/wuhuang-cat-v2.png", "to": "wuhuang-cat-v2.png" }],
+    "win": { "target": "nsis" }
   }
 }

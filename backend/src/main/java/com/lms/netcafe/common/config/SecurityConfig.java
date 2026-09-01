@@ -33,7 +33,8 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/health", "/api/v1/auth/login", "/v3/api-docs/**", "/swagger-ui/**")
+                        .requestMatchers("/error", "/api/v1/health", "/api/v1/auth/login", "/api/v1/auth/face-login",
+                                "/api/v1/clients/**", "/v3/api-docs/**", "/swagger-ui/**")
                         .permitAll()
                         .requestMatchers("/api/v1/statistics/dashboard")
                         .hasAuthority("dashboard:view")
@@ -49,6 +50,10 @@ public class SecurityConfig {
                         .hasAuthority("portal:devices")
                         .requestMatchers("/api/v1/portal/faults/**")
                         .hasAuthority("portal:support")
+                        .requestMatchers("/api/v1/portal/services/**")
+                        .hasAuthority("portal:services")
+                        .requestMatchers("/api/v1/frontdesk/services/**")
+                        .hasAuthority("service:manage")
                         .requestMatchers("/api/v1/members/**")
                         .hasAuthority("member:manage")
                         .requestMatchers(HttpMethod.GET, "/api/v1/devices/**")
@@ -79,7 +84,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://127.0.0.1:5173", "http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of(
+                "http://127.0.0.1:5173", "http://localhost:5173",
+                "http://127.0.0.1:5174", "http://localhost:5174", "null"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

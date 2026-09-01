@@ -26,12 +26,17 @@ public class AuthService {
         return loadUserWithPassword(username)
                 .filter(user -> "ENABLED".equals(user.status()))
                 .filter(user -> passwordEncoder.matches(password, user.passwordHash()))
-                .map(user -> {
-                    AuthenticatedUser profile = loadUser(username).orElseThrow();
-                    return Map.of(
-                            "token", tokenService.createToken(username),
-                            "user", profile);
-                });
+                .flatMap(user -> loginUser(username));
+    }
+
+    public Optional<Map<String, Object>> loginByUserId(Long userId) {
+        List<String> usernames = jdbcTemplate.queryForList("""
+                SELECT username
+                FROM sys_user
+                WHERE id = ? AND status = 'ENABLED' AND deleted = 0
+                LIMIT 1
+                """, String.class, userId);
+        return usernames.stream().findFirst().flatMap(this::loginUser);
     }
 
     public Optional<AuthenticatedUser> loadUser(String username) {
@@ -52,6 +57,15 @@ public class AuthService {
                         (String) row.get("username"),
                         (String) row.get("status"),
                         (String) row.get("password_hash")));
+    }
+
+    private Optional<Map<String, Object>> loginUser(String username) {
+        return loadUser(username).map(profile -> {
+            jdbcTemplate.update("UPDATE sys_user SET last_login_at = NOW() WHERE id = ?", profile.id());
+            return Map.of(
+                    "token", tokenService.createToken(username),
+                    "user", profile);
+        });
     }
 
     private Optional<Map<String, Object>> queryUser(String username) {

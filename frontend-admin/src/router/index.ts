@@ -12,6 +12,7 @@ export const moduleRoutes = [
   { path: 'billing/rules', name: 'billing-rules', component: () => import('../views/billing/BillingRuleView.vue'), meta: { title: '计费规则', permission: 'billing:manage', icon: 'Coin' } },
   { path: 'sessions', name: 'sessions', component: () => import('../views/session/SessionView.vue'), meta: { title: '上机记录', permission: 'session:view', icon: 'Clock' } },
   { path: 'faces', name: 'faces', component: () => import('../views/face/FaceView.vue'), meta: { title: '人脸认证', permission: 'face:manage', icon: 'Camera' } },
+  { path: 'service-desk', name: 'service-desk', component: () => import('../views/service/ServiceDeskView.vue'), meta: { title: '服务与订单', permission: 'service:manage', icon: 'ShoppingCart' } },
   { path: 'statistics', name: 'statistics', component: () => import('../views/statistics/StatisticsView.vue'), meta: { title: '数据统计', permission: 'statistics:view', icon: 'DataAnalysis' } },
   { path: 'system/users', name: 'system-users', component: () => import('../views/system/SystemUserView.vue'), meta: { title: '系统用户', permission: 'system:user', icon: 'Setting' } },
   { path: 'maintenance', name: 'maintenance', component: () => import('../views/maintenance/MaintenanceView.vue'), meta: { title: '维修维护', permission: 'maintenance:manage', icon: 'Tools' } },
@@ -19,6 +20,7 @@ export const moduleRoutes = [
   { path: 'portal/account', name: 'portal-account', component: () => import('../views/portal/PortalAccountView.vue'), meta: { title: '我的账户', permission: 'portal:account', icon: 'Wallet' } },
   { path: 'portal/sessions', name: 'portal-sessions', component: () => import('../views/portal/PortalSessionsView.vue'), meta: { title: '上机记录', permission: 'portal:sessions', icon: 'TrendCharts' } },
   { path: 'portal/devices', name: 'portal-devices', component: () => import('../views/portal/PortalDevicesView.vue'), meta: { title: '机位与计费', permission: 'portal:devices', icon: 'MapLocation' } },
+  { path: 'portal/services', name: 'portal-services', component: () => import('../views/portal/PortalServicesView.vue'), meta: { title: '呼叫与点餐', permission: 'portal:services', icon: 'ShoppingCart' } },
   { path: 'portal/support', name: 'portal-support', component: () => import('../views/portal/PortalSupportView.vue'), meta: { title: '故障反馈', permission: 'portal:support', icon: 'Service' } }
 ]
 

@@ -1,6 +1,6 @@
 # LMSNetCafe
 
-网咖综合管理系统基础工程，按照 `开发文档` 中的架构拆分为后端主服务、管理端、人脸认证服务和桌面桌宠客户端。
+网咖综合管理系统，按照 `开发文档` 中的架构拆分为后端主服务、管理端、人脸认证服务和桌面桌宠客户端。
 
 ## Modules
 
@@ -35,7 +35,7 @@ cd face-service
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 9000 --reload
 
 # desktop pet
 cd desktop-pet
@@ -45,4 +45,4 @@ npm run dev
 
 ## Notes
 
-Current scaffold focuses on project boundaries, shared conventions, runnable entry points and first health/demo endpoints. Business implementations should follow the module design in `开发文档`.
+统一入口：`http://127.0.0.1:5173/login`。密码登录和人脸识别登录共用三角色权限体系；桌宠默认绑定演示机位 `PC-A01`。

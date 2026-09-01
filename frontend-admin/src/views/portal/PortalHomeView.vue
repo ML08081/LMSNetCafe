@@ -63,18 +63,30 @@
       <section class="panel">
         <div class="panel-header"><h2>常用服务</h2></div>
         <div class="portal-actions">
+          <button @click="router.push('/portal/services')"><el-icon><ShoppingCart /></el-icon><span>呼叫与点餐</span></button>
           <button @click="router.push('/portal/account')"><el-icon><Wallet /></el-icon><span>余额明细</span></button>
           <button @click="router.push('/portal/devices')"><el-icon><MapLocation /></el-icon><span>查看机位</span></button>
-          <button @click="router.push('/portal/support')"><el-icon><Service /></el-icon><span>故障反馈</span></button>
         </div>
       </section>
     </div>
+
+    <section class="panel pet-setting-panel" v-loading="petLoading">
+      <div class="panel-header">
+        <div><h2>桌面宠物</h2><p class="panel-description">设置会同步到当前上机电脑，最长约 5 秒生效</p></div>
+        <el-switch v-model="petSetting.enabled" active-text="显示桌宠" @change="savePetSetting" />
+      </div>
+      <div class="pet-setting-options" :class="{ disabled: !petSetting.enabled }">
+        <label><span><strong>窗口置顶</strong><small>保持桌宠显示在其他窗口上方</small></span><el-switch v-model="petSetting.alwaysOnTop" :disabled="!petSetting.enabled" @change="savePetSetting" /></label>
+        <label><span><strong>提示气泡</strong><small>显示余额、时长和休息提醒</small></span><el-switch v-model="petSetting.showBubble" :disabled="!petSetting.enabled" @change="savePetSetting" /></label>
+      </div>
+    </section>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { MapLocation, Service, Wallet } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { MapLocation, ShoppingCart, Wallet } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { http } from '../../api/http'
 import { useAuthStore } from '../../stores/auth'
@@ -84,19 +96,37 @@ interface ApiResponse<T> { data: T }
 const router = useRouter()
 const auth = useAuthStore()
 const loading = ref(false)
+const petLoading = ref(false)
 const overview = ref<any>({ profile: {}, currentSession: null, availableDevices: 0 })
+const petSetting = reactive({ enabled: true, alwaysOnTop: true, showBubble: true })
 const profile = computed(() => overview.value.profile ?? {})
 const currentSession = computed(() => overview.value.currentSession)
 
 onMounted(async () => {
   loading.value = true
+  petLoading.value = true
   try {
-    const response = await http.get<ApiResponse<any>>('/portal/overview')
+    const [response, petResponse] = await Promise.all([
+      http.get<ApiResponse<any>>('/portal/overview'),
+      http.get<ApiResponse<any>>('/portal/services/pet-settings')
+    ])
     overview.value = response.data.data
+    Object.assign(petSetting, petResponse.data.data)
   } finally {
     loading.value = false
+    petLoading.value = false
   }
 })
+
+async function savePetSetting() {
+  petLoading.value = true
+  try {
+    await http.patch('/portal/services/pet-settings', petSetting)
+    ElMessage.success('桌宠设置已同步')
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '桌宠设置保存失败')
+  } finally { petLoading.value = false }
+}
 
 function money(value: unknown) { return `¥${Number(value ?? 0).toFixed(2)}` }
 function formatDate(value: string) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }

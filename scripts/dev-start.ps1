@@ -32,7 +32,7 @@ if ($Admin) {
 
 if ($Face) {
   Push-Location (Join-Path $repoRoot 'face-service')
-  uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload
+  python -m uvicorn app.main:app --host 127.0.0.1 --port 9000 --reload
   Pop-Location
 }
 

@@ -3,37 +3,76 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">人脸认证</h1>
-        <p class="page-subtitle">管理会员人脸录入状态和上机验证记录。</p>
+        <p class="page-subtitle">为系统用户录入登录人脸，并查看真实识别结果。</p>
       </div>
-      <el-button type="primary">开始录入</el-button>
+      <el-button :icon="Refresh" @click="loadData">刷新</el-button>
     </div>
 
-    <div class="dashboard-grid">
-      <section class="panel">
+    <div class="face-workspace">
+      <section class="panel face-capture-panel">
         <div class="panel-header">
-          <h2>录入工作台</h2>
-          <el-tag type="info">模拟采集</el-tag>
+          <h2>采集工作台</h2>
+          <el-tag :type="selected?.enrolled ? 'success' : 'info'">
+            {{ selected?.enrolled ? '已录入' : '未录入' }}
+          </el-tag>
         </div>
-        <div class="capture-box">
-          <el-icon><Camera /></el-icon>
-          <span>摄像头预览区域</span>
-        </div>
-        <div class="action-row">
-          <el-button type="primary">采集照片</el-button>
-          <el-button>质量检测</el-button>
+        <el-form label-position="top">
+          <el-form-item label="认证用户">
+            <el-select v-model="selectedUserId" filterable placeholder="请选择用户" style="width: 100%">
+              <el-option
+                v-for="user in candidates"
+                :key="user.userId"
+                :label="`${user.realName} · ${user.roleName} (${user.username})`"
+                :value="user.userId"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="采集用途">
+            <el-radio-group v-model="operation">
+              <el-radio-button value="enroll">{{ selected?.enrolled ? '重新录入' : '首次录入' }}</el-radio-button>
+              <el-radio-button value="verify" :disabled="!selected?.enrolled">现场验证</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+        <CameraCapture
+          :key="captureKey"
+          :action-label="operation === 'enroll' ? '拍照并保存档案' : '拍照并验证'"
+          @captured="submitCapture"
+        />
+        <div v-if="selected?.enrolled" class="face-profile-meta">
+          <span>录入质量 {{ formatQuality(selected.qualityScore) }}</span>
+          <span>{{ formatTime(selected.enrolledAt) }}</span>
+          <el-button text type="danger" @click="removeProfile">删除档案</el-button>
         </div>
       </section>
 
       <section class="panel">
         <div class="panel-header">
           <h2>验证日志</h2>
-          <el-button text type="primary">更多</el-button>
+          <el-tag type="info">最近 100 条</el-tag>
         </div>
-        <el-table v-loading="loading" :data="logs" style="width: 100%">
-          <el-table-column prop="member" label="会员" width="100" />
-          <el-table-column prop="device" label="机位" width="100" />
-          <el-table-column prop="similarity" label="相似度" width="100" />
-          <el-table-column prop="result" label="结果" />
+        <el-table v-loading="loading" :data="logs" height="560" style="width: 100%">
+          <el-table-column label="用户" min-width="150">
+            <template #default="scope">
+              <strong>{{ scope.row.realName || scope.row.memberName || '未知用户' }}</strong>
+              <small class="table-secondary">{{ scope.row.username || '-' }}</small>
+            </template>
+          </el-table-column>
+          <el-table-column prop="deviceCode" label="机位" width="100" />
+          <el-table-column label="相似度" width="100">
+            <template #default="scope">{{ formatSimilarity(scope.row.similarity) }}</template>
+          </el-table-column>
+          <el-table-column label="结果" width="90">
+            <template #default="scope">
+              <el-tag :type="scope.row.result === 'PASSED' ? 'success' : 'danger'">
+                {{ scope.row.result === 'PASSED' ? '通过' : '未通过' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="failReason" label="说明" min-width="160" show-overflow-tooltip />
+          <el-table-column label="时间" min-width="170">
+            <template #default="scope">{{ formatTime(scope.row.createdAt) }}</template>
+          </el-table-column>
         </el-table>
       </section>
     </div>
@@ -41,29 +80,106 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { Camera } from '@element-plus/icons-vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { Refresh } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import CameraCapture from '../../components/CameraCapture.vue'
 import { http } from '../../api/http'
 
-interface ApiResponse<T> {
-  data: T
+interface ApiResponse<T> { code: number; message: string; data: T }
+interface Candidate {
+  userId: number
+  username: string
+  realName: string
+  memberId: number | null
+  roleName: string
+  enrolled: number | boolean
+  qualityScore: number | null
+  enrolledAt: string | null
 }
 
 const loading = ref(false)
+const submitting = ref(false)
+const candidates = ref<Candidate[]>([])
 const logs = ref<any[]>([])
+const selectedUserId = ref<number | null>(null)
+const operation = ref<'enroll' | 'verify'>('enroll')
+const captureKey = ref(0)
+const selected = computed(() => candidates.value.find((item) => item.userId === selectedUserId.value))
 
-onMounted(async () => {
+watch(selectedUserId, () => {
+  operation.value = selected.value?.enrolled ? 'verify' : 'enroll'
+  captureKey.value += 1
+})
+
+async function loadData() {
   loading.value = true
   try {
-    const response = await http.get<ApiResponse<any[]>>('/faces/logs')
-    logs.value = response.data.data.map((item) => ({
-      member: item.memberName ?? '-',
-      device: item.deviceCode ?? '-',
-      similarity: item.similarity ?? '-',
-      result: item.result === 'PASSED' ? '通过' : '未通过'
-    }))
+    const [candidateResponse, logResponse] = await Promise.all([
+      http.get<ApiResponse<Candidate[]>>('/faces/candidates'),
+      http.get<ApiResponse<any[]>>('/faces/logs')
+    ])
+    candidates.value = candidateResponse.data.data
+    logs.value = logResponse.data.data
+    if (!selectedUserId.value && candidates.value.length) {
+      selectedUserId.value = candidates.value[0].userId
+    }
   } finally {
     loading.value = false
   }
-})
+}
+
+async function submitCapture(image: Blob) {
+  if (!selectedUserId.value) {
+    ElMessage.warning('请先选择认证用户')
+    captureKey.value += 1
+    return
+  }
+  submitting.value = true
+  const payload = new FormData()
+  payload.append('userId', String(selectedUserId.value))
+  payload.append('image', image, 'face-capture.jpg')
+  try {
+    const response = await http.post<ApiResponse<any>>(`/faces/${operation.value}`, payload)
+    if (response.data.code !== 0) {
+      throw new Error(response.data.message)
+    }
+    const result = response.data.data
+    if (operation.value === 'verify' && !result.matched) {
+      ElMessage.error(`${result.message}（相似度 ${formatSimilarity(result.similarity)}）`)
+    } else {
+      ElMessage.success(operation.value === 'enroll'
+        ? `录入成功，质量评分 ${formatQuality(result.qualityScore)}`
+        : `验证通过，相似度 ${formatSimilarity(result.similarity)}`)
+    }
+    await loadData()
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || error.response?.data?.message || error.message || '人脸处理失败')
+  } finally {
+    submitting.value = false
+    captureKey.value += 1
+  }
+}
+
+async function removeProfile() {
+  if (!selectedUserId.value) return
+  await ElMessageBox.confirm('删除后该用户将无法通过人脸登录，确认继续？', '删除人脸档案', { type: 'warning' })
+  await http.delete(`/faces/${selectedUserId.value}`)
+  ElMessage.success('人脸档案已删除')
+  await loadData()
+}
+
+function formatSimilarity(value: number | null) {
+  return value == null ? '-' : `${(Number(value) * 100).toFixed(1)}%`
+}
+
+function formatQuality(value: number | null) {
+  return value == null ? '-' : Number(value).toFixed(1)
+}
+
+function formatTime(value: string | null) {
+  return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-'
+}
+
+onMounted(loadData)
 </script>
