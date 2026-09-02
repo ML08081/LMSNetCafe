@@ -2,7 +2,9 @@ package com.lms.netcafe.common.config;
 
 import com.lms.netcafe.common.security.BearerTokenAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,9 +23,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter;
+    private final String allowedOriginPatterns;
 
-    public SecurityConfig(BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter) {
+    public SecurityConfig(
+            BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
+            @Value("${lms.cors.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*,http://192.168.*:*,http://172.*:*,http://10.*:*}")
+            String allowedOriginPatterns) {
         this.bearerTokenAuthenticationFilter = bearerTokenAuthenticationFilter;
+        this.allowedOriginPatterns = allowedOriginPatterns;
     }
 
     @Bean
@@ -84,9 +91,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://127.0.0.1:5173", "http://localhost:5173",
-                "http://127.0.0.1:5174", "http://localhost:5174", "null"));
+        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOriginPatterns.split(","))
+                .map(String::trim)
+                .filter(pattern -> !pattern.isBlank())
+                .toList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

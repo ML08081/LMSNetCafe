@@ -9,14 +9,25 @@ let tray: Tray | null = null
 let quitting = false
 
 interface PetConfig { serverUrl: string; deviceCode: string; alwaysOnTop: boolean }
-const defaultConfig: PetConfig = { serverUrl: 'http://127.0.0.1:8080', deviceCode: 'PC-A01', alwaysOnTop: true }
+const defaultConfig: PetConfig = {
+  serverUrl: process.env.LMS_PET_SERVER_URL || readArgValue('--server-url') || 'http://127.0.0.1:8080',
+  deviceCode: process.env.LMS_PET_DEVICE_CODE || readArgValue('--device-code') || 'PC-A01',
+  alwaysOnTop: process.env.LMS_PET_ALWAYS_ON_TOP !== 'false'
+}
 
 function configPath() { return path.join(app.getPath('userData'), 'pet-config.json') }
+function readArgValue(name: string) {
+  const exact = process.argv.find((arg) => arg.startsWith(`${name}=`))
+  if (exact) return exact.slice(name.length + 1)
+  const index = process.argv.indexOf(name)
+  return index >= 0 ? process.argv[index + 1] : undefined
+}
 function readConfig(): PetConfig {
   try { return { ...defaultConfig, ...JSON.parse(fs.readFileSync(configPath(), 'utf8')) } }
   catch { return { ...defaultConfig } }
 }
 function writeConfig(config: PetConfig) {
+  fs.mkdirSync(path.dirname(configPath()), { recursive: true })
   fs.writeFileSync(configPath(), JSON.stringify(config, null, 2), 'utf8')
 }
 

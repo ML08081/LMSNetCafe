@@ -6,6 +6,15 @@ interface PetConfig {
   alwaysOnTop: boolean
 }
 
+interface ImportMetaEnv {
+  readonly VITE_LMS_PET_SERVER_URL?: string
+  readonly VITE_LMS_PET_DEVICE_CODE?: string
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
 interface Window {
   lmsPet?: {
     version: string

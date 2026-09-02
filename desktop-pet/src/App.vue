@@ -80,11 +80,16 @@ interface SessionSnapshot {
 
 const appVersion = '0.2.0'
 const catImage = './wuhuang-cat-v2.png'
-const defaultConfig: PetConfig = { serverUrl: 'http://127.0.0.1:8080', deviceCode: 'PC-A01', alwaysOnTop: true }
+const defaultConfig: PetConfig = {
+  serverUrl: import.meta.env.VITE_LMS_PET_SERVER_URL || 'http://127.0.0.1:8080',
+  deviceCode: import.meta.env.VITE_LMS_PET_DEVICE_CODE || 'PC-A01',
+  alwaysOnTop: true
+}
 const config = reactive<PetConfig>({ ...defaultConfig })
 const draftConfig = reactive<PetConfig>({ ...defaultConfig })
 const session = reactive<SessionSnapshot>({ active: false, deviceCode: defaultConfig.deviceCode })
 const connectionState = ref<'connecting' | 'online' | 'offline'>('connecting')
+const connectionError = ref('')
 const settingsOpen = ref(false)
 const detailOpen = ref(false)
 const now = ref(Date.now())
@@ -112,7 +117,7 @@ const formattedDuration = computed(() => {
 
 const lowBalance = computed(() => Boolean(session.active && session.lowBalance))
 const message = computed(() => {
-  if (connectionState.value === 'offline') return '后台暂时联系不上，我会继续重连。'
+  if (connectionState.value === 'offline') return connectionError.value || '后台暂时联系不上，我会继续重连。'
   if (connectionState.value === 'connecting') return '正在确认这台机位的状态。'
   if (!session.active) return '机位空闲，等你来开黑。'
   if (lowBalance.value) return `余额偏低，只剩 ¥${money(session.balance)}。`
@@ -133,6 +138,7 @@ async function initialize() {
 async function connect() {
   clearNetworkTimers()
   connectionState.value = 'connecting'
+  connectionError.value = ''
   session.active = false
   try {
     const response = await fetch(`${apiBase()}/api/v1/clients/register`, {
@@ -148,6 +154,7 @@ async function connect() {
     heartbeatTimer = window.setInterval(heartbeat, Math.max(10, payload.heartbeatSeconds) * 1000)
   } catch {
     connectionState.value = 'offline'
+    connectionError.value = `无法连接 ${apiBase()}，请检查主机 IP、端口和设备编号。`
     sessionTimer = window.setInterval(connect, 10000)
   }
 }
@@ -170,6 +177,7 @@ async function loadSession() {
     connectionState.value = 'online'
   } catch {
     connectionState.value = 'offline'
+    connectionError.value = `会话同步失败，请检查 ${config.deviceCode} 是否已在管理端登记。`
   }
 }
 
@@ -183,6 +191,7 @@ async function heartbeat() {
     if (!response.ok) throw new Error('heartbeat failed')
   } catch {
     connectionState.value = 'offline'
+    connectionError.value = '心跳上报失败，正在等待重新连接。'
   }
 }
 
@@ -193,6 +202,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 async function saveSettings() {
+  draftConfig.serverUrl = normalizeServerUrl(draftConfig.serverUrl)
   Object.assign(config, draftConfig)
   if (window.lmsPet) {
     await window.lmsPet.saveConfig({ ...config })
@@ -208,6 +218,11 @@ function readWebConfig(): Partial<PetConfig> {
   catch { return {} }
 }
 
+function normalizeServerUrl(value: string) {
+  const trimmed = value.trim().replace(/\/+$/, '')
+  if (!trimmed) return defaultConfig.serverUrl
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`
+}
 function apiBase() { return config.serverUrl.replace(/\/$/, '') }
 function money(value?: number) { return Number(value || 0).toFixed(2) }
 function hideWindow() { window.lmsPet?.hide() }
