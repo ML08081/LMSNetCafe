@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "LMS 一键启动局域网主机",
+      "type": "shell",
+      "command": "npm run start:lan",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "LMS 后端编译",
+      "type": "shell",
+      "command": "$env:JAVA_HOME='E:\\DevTools\\Java\\MicrosoftOpenJDK21'; $env:Path='E:\\DevTools\\Maven\\apache-maven-3.9.10\\bin;E:\\DevTools\\Java\\MicrosoftOpenJDK21\\bin;' + $env:Path; mvn -q -DskipTests compile",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "LMS 前端构建",
+      "type": "shell",
+      "command": "$env:Path='E:\\DevTools\\Node\\node-v24.19.0-win-x64;' + $env:Path; npm --prefix frontend-admin run build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "LMS 桌宠构建",
+      "type": "shell",
+      "command": "$env:Path='E:\\DevTools\\Node\\node-v24.19.0-win-x64;' + $env:Path; npm --prefix desktop-pet run build",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "LMS 生成迁移包",
+      "type": "shell",
+      "command": "npm run package:lan",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

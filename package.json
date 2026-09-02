@@ -8,7 +8,8 @@
     "dev:pet": "npm --prefix desktop-pet run dev",
     "build:admin": "npm --prefix frontend-admin run build",
     "build:pet": "npm --prefix desktop-pet run build",
-    "package:lan": "powershell -ExecutionPolicy Bypass -File scripts/make-lan-package.ps1"
+    "package:lan": "powershell -ExecutionPolicy Bypass -File scripts/make-lan-package.ps1",
+    "start:lan": "powershell -ExecutionPolicy Bypass -File scripts/start-lan-host.ps1"
   },
   "workspaces": [
     "frontend-admin",

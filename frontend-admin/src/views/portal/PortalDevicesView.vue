@@ -10,6 +10,7 @@
         <article v-for="device in filteredDevices" :key="device.id" :class="['portal-seat', statusClass(device.status)]">
           <div><strong>{{ device.deviceCode }}</strong><span>{{ device.area }} · {{ device.seatNo }}</span></div>
           <el-tag :type="tagType(device.status)" effect="plain">{{ statusLabel(device.status) }}</el-tag>
+          <small>{{ device.roomCapacity || 1 }} 人位 · {{ device.hourlyRateHint ? money(device.hourlyRateHint) + '/小时' : '按规则计费' }}</small>
           <small>{{ device.configDesc }}</small>
         </article>
       </div>

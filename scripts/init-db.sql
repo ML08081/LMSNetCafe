@@ -107,6 +107,39 @@ CREATE TABLE IF NOT EXISTS member_info (
   KEY idx_member_phone (phone)
 );
 
+CREATE TABLE IF NOT EXISTS member_operation_profile (
+  member_id BIGINT PRIMARY KEY,
+  favorite_games VARCHAR(255),
+  preferred_time_slot VARCHAR(64),
+  beverage_preference VARCHAR(128),
+  spending_power VARCHAR(32) NOT NULL DEFAULT 'MEDIUM',
+  churn_risk VARCHAR(32) NOT NULL DEFAULT 'LOW',
+  segment VARCHAR(64) NOT NULL DEFAULT '休闲追剧用户',
+  last_visit_at DATETIME NULL,
+  last_order_at DATETIME NULL,
+  recommendation VARCHAR(255),
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_member_profile_churn (churn_risk),
+  KEY idx_member_profile_segment (segment)
+);
+
+CREATE TABLE IF NOT EXISTS member_coupon (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  coupon_no VARCHAR(64) NOT NULL,
+  member_id BIGINT NOT NULL,
+  coupon_type VARCHAR(32) NOT NULL,
+  title VARCHAR(128) NOT NULL,
+  discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  discount_rate DECIMAL(5,2),
+  min_spend DECIMAL(10,2) NOT NULL DEFAULT 0,
+  status VARCHAR(20) NOT NULL DEFAULT 'UNUSED',
+  source_reason VARCHAR(255),
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_member_coupon_no (coupon_no),
+  KEY idx_member_coupon_member_status (member_id, status)
+);
+
 CREATE TABLE IF NOT EXISTS member_account (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   member_id BIGINT NOT NULL,
@@ -152,6 +185,9 @@ CREATE TABLE IF NOT EXISTS device_info (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   device_code VARCHAR(32) NOT NULL,
   area VARCHAR(64),
+  area_type VARCHAR(32) NOT NULL DEFAULT 'LOBBY',
+  room_capacity INT NOT NULL DEFAULT 1,
+  hourly_rate_hint DECIMAL(10,2),
   seat_no VARCHAR(32) NOT NULL,
   ip_address VARCHAR(64),
   config_desc VARCHAR(255),
@@ -161,6 +197,51 @@ CREATE TABLE IF NOT EXISTS device_info (
   deleted TINYINT NOT NULL DEFAULT 0,
   UNIQUE KEY uk_device_code (device_code)
 );
+
+SET @device_area_type_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'device_info'
+    AND COLUMN_NAME = 'area_type'
+);
+SET @add_device_area_type_sql = IF(
+  @device_area_type_column_exists = 0,
+  'ALTER TABLE device_info ADD COLUMN area_type VARCHAR(32) NOT NULL DEFAULT ''LOBBY'' AFTER area',
+  'SELECT 1'
+);
+PREPARE add_device_area_type_statement FROM @add_device_area_type_sql;
+EXECUTE add_device_area_type_statement;
+DEALLOCATE PREPARE add_device_area_type_statement;
+
+SET @device_capacity_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'device_info'
+    AND COLUMN_NAME = 'room_capacity'
+);
+SET @add_device_capacity_sql = IF(
+  @device_capacity_column_exists = 0,
+  'ALTER TABLE device_info ADD COLUMN room_capacity INT NOT NULL DEFAULT 1 AFTER area_type',
+  'SELECT 1'
+);
+PREPARE add_device_capacity_statement FROM @add_device_capacity_sql;
+EXECUTE add_device_capacity_statement;
+DEALLOCATE PREPARE add_device_capacity_statement;
+
+SET @device_rate_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'device_info'
+    AND COLUMN_NAME = 'hourly_rate_hint'
+);
+SET @add_device_rate_sql = IF(
+  @device_rate_column_exists = 0,
+  'ALTER TABLE device_info ADD COLUMN hourly_rate_hint DECIMAL(10,2) NULL AFTER room_capacity',
+  'SELECT 1'
+);
+PREPARE add_device_rate_statement FROM @add_device_rate_sql;
+EXECUTE add_device_rate_statement;
+DEALLOCATE PREPARE add_device_rate_statement;
 
 CREATE TABLE IF NOT EXISTS billing_rule (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -464,7 +545,11 @@ INSERT INTO sys_role_permission (role_id, permission_id) VALUES
 INSERT IGNORE INTO billing_rule (id, rule_name, price_per_hour, min_minutes, billing_unit_minutes, low_balance_threshold) VALUES
   (1, '默认计费规则', 10.00, 15, 15, 10.00),
   (2, 'VIP 包间规则', 18.00, 30, 15, 20.00),
-  (3, '包夜规则', 50.00, 360, 360, 10.00);
+  (3, '包夜规则', 50.00, 360, 360, 10.00),
+  (4, '单人豪华包房', 22.00, 30, 15, 20.00),
+  (5, '双人包房', 36.00, 30, 15, 30.00),
+  (6, '四人包房', 62.00, 60, 30, 50.00),
+  (7, '五人包房', 78.00, 60, 30, 60.00);
 
 INSERT IGNORE INTO member_info (id, member_no, name, phone, id_card_no, level, status) VALUES
   (1, 'M0001', '张三', '13800000001', 'MASKED-0001', 'NORMAL', 'ACTIVE'),
@@ -477,6 +562,52 @@ INSERT IGNORE INTO member_account (id, member_id, balance, total_recharge, total
   (2, 2, 6.50, 60.00, 53.50),
   (3, 3, 0.00, 0.00, 0.00),
   (4, 4, 88.00, 120.00, 32.00);
+
+INSERT INTO member_operation_profile
+  (member_id, favorite_games, preferred_time_slot, beverage_preference, spending_power,
+   churn_risk, segment, last_visit_at, last_order_at, recommendation)
+VALUES
+  (1, '英雄联盟、无畏契约、APEX', '晚间 19:00-23:00', '冰镇可乐、罐装咖啡',
+   'MEDIUM', 'LOW', '游戏发烧友', '2026-09-02 12:20:00', '2026-09-02 12:35:00',
+   '推荐竞技区连坐套餐和饮品加购券'),
+  (2, '原神、影视追剧、Steam 独立游戏', '下午 14:00-18:00', '冰红茶',
+   'LOW', 'MEDIUM', '休闲追剧用户', '2026-08-21 16:30:00', NULL,
+   '推荐下午场时长券和轻食折扣'),
+  (3, '穿越火线、地下城与勇士', '深夜 23:00-06:00', '烤肠、咖啡',
+   'LOW', 'HIGH', '深夜包夜用户', '2026-08-10 02:15:00', NULL,
+   '超过 14 天未到店，建议推送包夜代金券'),
+  (4, '永劫无间、黑神话、主机游戏', '周末 18:00-24:00', '黑椒鸡排饭、每日坚果',
+   'HIGH', 'LOW', '高价值包房用户', '2026-09-01 20:00:00', '2026-09-01 20:40:00',
+   '推荐四人包房套餐和陪玩服务')
+ON DUPLICATE KEY UPDATE
+  favorite_games = VALUES(favorite_games),
+  preferred_time_slot = VALUES(preferred_time_slot),
+  beverage_preference = VALUES(beverage_preference),
+  spending_power = VALUES(spending_power),
+  churn_risk = VALUES(churn_risk),
+  segment = VALUES(segment),
+  last_visit_at = VALUES(last_visit_at),
+  last_order_at = VALUES(last_order_at),
+  recommendation = VALUES(recommendation);
+
+INSERT INTO member_coupon
+  (id, coupon_no, member_id, coupon_type, title, discount_amount, discount_rate, min_spend,
+   status, source_reason, expires_at)
+VALUES
+  (1, 'CP202609020001', 3, 'MACHINE_VOUCHER', '14 天未到店上机代金券', 15.00, NULL, 30.00,
+   'UNUSED', '流失风险高，自动生成召回券', '2026-10-02 23:59:59'),
+  (2, 'CP202609020002', 2, 'DRINK_DISCOUNT', '下午场饮品折扣券', 3.00, NULL, 10.00,
+   'UNUSED', '休闲追剧用户偏好饮品', '2026-09-30 23:59:59'),
+  (3, 'CP202609020003', 4, 'ROOM_PACKAGE', '包房用户加时券', 20.00, NULL, 80.00,
+   'UNUSED', '高价值包房用户运营', '2026-10-02 23:59:59')
+ON DUPLICATE KEY UPDATE
+  title = VALUES(title),
+  discount_amount = VALUES(discount_amount),
+  discount_rate = VALUES(discount_rate),
+  min_spend = VALUES(min_spend),
+  status = VALUES(status),
+  source_reason = VALUES(source_reason),
+  expires_at = VALUES(expires_at);
 
 INSERT INTO member_pet_setting (member_id, enabled, always_on_top, show_bubble) VALUES
   (1, 1, 1, 1),
@@ -493,22 +624,47 @@ INSERT INTO shop_product (id, product_code, product_name, category, price, stock
   (5, 'SNACK-SAUSAGE', '烤肠', 'SNACK', 6.00, 45, 'ENABLED', 50),
   (6, 'SNACK-NUTS', '每日坚果', 'SNACK', 10.00, 35, 'ENABLED', 60),
   (7, 'MEAL-NOODLES', '香辣牛肉面', 'MEAL', 12.00, 30, 'ENABLED', 70),
-  (8, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 22.00, 25, 'ENABLED', 80)
+  (8, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 22.00, 25, 'ENABLED', 80),
+  (9, 'PLAY-CAT-FPS', '猫系陪玩·FPS 枪王 30 分钟', 'PLAYMATE_CAT', 28.00, 12, 'ENABLED', 110),
+  (10, 'PLAY-CAT-MOBA', '猫系陪玩·MOBA 辅助指挥', 'PLAYMATE_CAT', 26.00, 10, 'ENABLED', 120),
+  (11, 'PLAY-DOG-MOBA', '犬系陪玩·上分冲锋 30 分钟', 'PLAYMATE_DOG', 30.00, 10, 'ENABLED', 130),
+  (12, 'PLAY-DOG-FUN', '犬系陪玩·休闲整活 30 分钟', 'PLAYMATE_DOG', 22.00, 14, 'ENABLED', 140),
+  (13, 'PLAY-REPTILE-STRATEGY', '爬宠系陪玩·策略教学 30 分钟', 'PLAYMATE_REPTILE', 35.00, 8, 'ENABLED', 150),
+  (14, 'PLAY-REPTILE-AIM', '爬宠系陪玩·压枪训练 30 分钟', 'PLAYMATE_REPTILE', 32.00, 8, 'ENABLED', 160)
 ON DUPLICATE KEY UPDATE
   product_name = VALUES(product_name), category = VALUES(category), price = VALUES(price),
   status = VALUES(status), sort_order = VALUES(sort_order);
 
-INSERT IGNORE INTO device_info (id, device_code, area, seat_no, ip_address, config_desc, status) VALUES
-  (1, 'PC-A01', 'A区', 'A01', '192.168.1.101', 'RTX 4060 / 32G', 'IN_USE'),
-  (2, 'PC-A02', 'A区', 'A02', '192.168.1.102', 'RTX 4060 / 32G', 'IDLE'),
-  (3, 'PC-A03', 'A区', 'A03', '192.168.1.103', 'RTX 3060 / 16G', 'MAINTENANCE'),
-  (4, 'PC-A04', 'A区', 'A04', '192.168.1.104', 'RTX 3060 / 16G', 'FAULT'),
-  (5, 'PC-A05', 'A区', 'A05', '192.168.1.105', 'RTX 4060 / 32G', 'IN_USE'),
-  (6, 'PC-A06', 'A区', 'A06', '192.168.1.106', 'RTX 4060 / 32G', 'IDLE'),
-  (7, 'PC-B01', 'B区', 'B01', '192.168.1.121', 'RTX 4070 / 32G', 'IN_USE'),
-  (8, 'PC-B02', 'B区', 'B02', '192.168.1.122', 'RTX 4070 / 32G', 'IDLE'),
-  (9, 'PC-B03', 'B区', 'B03', '192.168.1.123', 'RTX 4070 / 32G', 'IN_USE'),
-  (10, 'PC-VIP01', 'VIP区', 'V01', '192.168.1.151', 'RTX 4080 / 64G', 'IDLE');
+INSERT INTO device_info
+  (id, device_code, area, area_type, room_capacity, hourly_rate_hint,
+   seat_no, ip_address, config_desc, status)
+VALUES
+  (1, 'PC-A01', '大厅A区', 'LOBBY_A', 1, 10.00, 'A01', '192.168.1.101', 'RTX 4060 / 32G / 竞技外设', 'IN_USE'),
+  (2, 'PC-A02', '大厅A区', 'LOBBY_A', 1, 10.00, 'A02', '192.168.1.102', 'RTX 4060 / 32G / 竞技外设', 'IDLE'),
+  (3, 'PC-A03', '大厅A区', 'LOBBY_A', 1, 10.00, 'A03', '192.168.1.103', 'RTX 3060 / 16G', 'MAINTENANCE'),
+  (4, 'PC-A04', '大厅A区', 'LOBBY_A', 1, 10.00, 'A04', '192.168.1.104', 'RTX 3060 / 16G', 'FAULT'),
+  (5, 'PC-A05', '大厅A区', 'LOBBY_A', 1, 10.00, 'A05', '192.168.1.105', 'RTX 4060 / 32G / 竞技外设', 'IN_USE'),
+  (6, 'PC-A06', '大厅A区', 'LOBBY_A', 1, 10.00, 'A06', '192.168.1.106', 'RTX 4060 / 32G / 竞技外设', 'IDLE'),
+  (7, 'PC-B01', '大厅B区', 'LOBBY_B', 1, 12.00, 'B01', '192.168.1.121', 'RTX 4070 / 32G / 高刷屏', 'IN_USE'),
+  (8, 'PC-B02', '大厅B区', 'LOBBY_B', 1, 12.00, 'B02', '192.168.1.122', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
+  (9, 'PC-B03', '大厅B区', 'LOBBY_B', 1, 12.00, 'B03', '192.168.1.123', 'RTX 4070 / 32G / 高刷屏', 'IN_USE'),
+  (10, 'PC-SVIP01', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S01', '192.168.1.151', 'RTX 4080 / 64G / 静音包房', 'IDLE'),
+  (11, 'PC-SVIP02', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S02', '192.168.1.152', 'RTX 4080 / 64G / 静音包房', 'IDLE'),
+  (12, 'PC-DUO01', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D01', '192.168.1.161', '双人连坐 / RTX 4070 / 32G', 'IDLE'),
+  (13, 'PC-DUO02', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D02', '192.168.1.162', '双人连坐 / RTX 4070 / 32G', 'IDLE'),
+  (14, 'PC-QUAD01', '四人包房', 'ROOM_QUAD', 4, 62.00, 'Q01', '192.168.1.171', '四人开黑 / RTX 4070Ti / 32G', 'IDLE'),
+  (15, 'PC-QUAD02', '四人包房', 'ROOM_QUAD', 4, 62.00, 'Q02', '192.168.1.172', '四人开黑 / RTX 4070Ti / 32G', 'MAINTENANCE'),
+  (16, 'PC-FIVE01', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F01', '192.168.1.181', '五人战队房 / RTX 4080 / 64G', 'IDLE'),
+  (17, 'PC-FIVE02', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F02', '192.168.1.182', '五人战队房 / RTX 4080 / 64G', 'IDLE')
+ON DUPLICATE KEY UPDATE
+  device_code = VALUES(device_code),
+  area = VALUES(area),
+  area_type = VALUES(area_type),
+  room_capacity = VALUES(room_capacity),
+  hourly_rate_hint = VALUES(hourly_rate_hint),
+  seat_no = VALUES(seat_no),
+  ip_address = VALUES(ip_address),
+  config_desc = VALUES(config_desc);
 
 INSERT IGNORE INTO machine_session (id, session_no, member_id, device_id, billing_rule_id, start_at, end_at, duration_minutes, estimated_amount, final_amount, status, operator_id, settled_by) VALUES
   (1, 'S202608310001', 1, 1, 1, '2026-08-31 08:10:00', NULL, NULL, 12.70, NULL, 'RUNNING', 3, NULL),

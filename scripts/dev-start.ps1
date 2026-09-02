@@ -24,7 +24,10 @@ if (Test-Path $javaHome) {
 $toolPaths = @($mavenBin, (Join-Path $javaHome 'bin'), $nodeBin) | Where-Object { Test-Path $_ }
 $env:Path = ($toolPaths -join ';') + ';' + $env:Path
 
-function Import-EnvFile([string]$Path) {
+# Load .env values into the current PowerShell process only.
+function Import-EnvFile {
+  param([string]$Path)
+
   if (-not $Path) { return }
   $resolved = if ([System.IO.Path]::IsPathRooted($Path)) { $Path } else { Join-Path $repoRoot $Path }
   if (-not (Test-Path $resolved)) {
@@ -41,6 +44,7 @@ function Import-EnvFile([string]$Path) {
 
 Import-EnvFile $EnvFile
 
+# Vite uses this backend URL for API proxying.
 $env:VITE_BACKEND_BASE_URL = $BackendBaseUrl
 $env:VITE_PROXY_API_TARGET = $BackendBaseUrl
 if ($PetServerUrl) { $env:LMS_PET_SERVER_URL = $PetServerUrl }

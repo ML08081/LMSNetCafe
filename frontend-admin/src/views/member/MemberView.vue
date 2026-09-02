@@ -30,7 +30,14 @@
         <el-table-column prop="name" label="姓名" width="110" />
         <el-table-column prop="phone" label="手机号" width="150" />
         <el-table-column prop="levelLabel" label="等级" width="100" />
+        <el-table-column prop="segment" label="画像分层" min-width="130" />
+        <el-table-column label="流失风险" width="110">
+          <template #default="{ row }">
+            <el-tag :type="riskType(row.churnRisk)">{{ riskLabel(row.churnRisk) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="balanceLabel" label="余额" width="120" />
+        <el-table-column prop="unusedCoupons" label="可用券" width="90" />
         <el-table-column label="人脸档案" width="120">
           <template #default="{ row }">
             <el-tag :type="row.faceEnrolled ? 'success' : 'info'">{{ row.faceEnrolled ? '已录入' : '未录入' }}</el-tag>
@@ -50,6 +57,47 @@
             </el-button>
           </template>
         </el-table-column>
+      </el-table>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>用户画像与精细化运营</h2>
+          <p class="panel-description">基于上机偏好、消费能力和最近到店时间识别会员分层与流失风险</p>
+        </div>
+        <el-form class="filter-bar operation-filter" inline>
+          <el-form-item label="风险">
+            <el-select v-model="operationFilters.churnRisk" style="width: 120px" @change="loadOperationProfiles">
+              <el-option label="全部" value="全部" />
+              <el-option label="高" value="HIGH" />
+              <el-option label="中" value="MEDIUM" />
+              <el-option label="低" value="LOW" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button @click="loadOperationProfiles">刷新</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+      <el-table v-loading="operationLoading" :data="operationProfiles" style="width: 100%">
+        <el-table-column prop="memberNo" label="会员编号" width="120" />
+        <el-table-column prop="name" label="姓名" width="100" />
+        <el-table-column prop="segment" label="会员分层" width="140" />
+        <el-table-column label="风险" width="90">
+          <template #default="{ row }"><el-tag :type="riskType(row.churnRisk)">{{ riskLabel(row.churnRisk) }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="favoriteGames" label="上网偏好" min-width="180" />
+        <el-table-column prop="preferredTimeSlot" label="常上机时段" width="150" />
+        <el-table-column prop="beveragePreference" label="消费偏好" min-width="150" />
+        <el-table-column label="消费能力" width="100">
+          <template #default="{ row }">{{ spendingLabel(row.spendingPower) }}</template>
+        </el-table-column>
+        <el-table-column label="距上次到店" width="110">
+          <template #default="{ row }">{{ row.daysSinceLastVisit ?? '-' }} 天</template>
+        </el-table-column>
+        <el-table-column prop="unusedCoupons" label="可用券" width="90" />
+        <el-table-column prop="recommendation" label="运营建议" min-width="220" />
       </el-table>
     </section>
 
@@ -99,10 +147,13 @@ interface ApiResponse<T> {
 
 const loading = ref(false)
 const saving = ref(false)
+const operationLoading = ref(false)
 const dialogVisible = ref(false)
 const editingId = ref<number>()
 const members = ref<any[]>([])
+const operationProfiles = ref<any[]>([])
 const filters = reactive({ keyword: '', status: '' })
+const operationFilters = reactive({ churnRisk: '全部' })
 const form = reactive({
   memberNo: '',
   name: '',
@@ -112,7 +163,7 @@ const form = reactive({
   status: 'ACTIVE'
 })
 
-onMounted(loadMembers)
+onMounted(async () => { await Promise.all([loadMembers(), loadOperationProfiles()]) })
 
 async function loadMembers() {
   loading.value = true
@@ -133,6 +184,18 @@ function resetFilters() {
   filters.keyword = ''
   filters.status = ''
   loadMembers()
+}
+
+async function loadOperationProfiles() {
+  operationLoading.value = true
+  try {
+    const response = await http.get<ApiResponse<any[]>>('/members/operation/profiles', {
+      params: { churnRisk: operationFilters.churnRisk }
+    })
+    operationProfiles.value = response.data.data
+  } finally {
+    operationLoading.value = false
+  }
 }
 
 function openCreate() {
@@ -222,5 +285,17 @@ function money(value: unknown) {
 
 function showError(error: any) {
   ElMessage.error(error?.response?.data?.message ?? '操作失败')
+}
+
+function riskLabel(value: string) {
+  return ({ HIGH: '高', MEDIUM: '中', LOW: '低' } as Record<string, string>)[value] || '-'
+}
+
+function riskType(value: string) {
+  return value === 'HIGH' ? 'danger' : value === 'MEDIUM' ? 'warning' : 'success'
+}
+
+function spendingLabel(value: string) {
+  return ({ HIGH: '高消费', MEDIUM: '中等', LOW: '低频' } as Record<string, string>)[value] || '-'
 }
 </script>

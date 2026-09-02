@@ -52,11 +52,24 @@ public class MemberController {
                   m.level,
                   m.status,
                   a.balance,
+                  p.segment,
+                  p.churn_risk AS churnRisk,
+                  p.spending_power AS spendingPower,
+                  p.favorite_games AS favoriteGames,
+                  p.preferred_time_slot AS preferredTimeSlot,
+                  COALESCE(c.unused_coupons, 0) AS unusedCoupons,
                   CASE WHEN f.id IS NULL THEN 0 ELSE 1 END AS faceEnrolled,
                   m.registered_at AS registeredAt
                 FROM member_info m
                 LEFT JOIN member_account a ON a.member_id = m.id
                 LEFT JOIN face_profile f ON f.member_id = m.id AND f.status = 'ACTIVE'
+                LEFT JOIN member_operation_profile p ON p.member_id = m.id
+                LEFT JOIN (
+                  SELECT member_id, COUNT(*) AS unused_coupons
+                  FROM member_coupon
+                  WHERE status = 'UNUSED' AND expires_at > NOW()
+                  GROUP BY member_id
+                ) c ON c.member_id = m.id
                 WHERE m.deleted = 0
                   AND (? IS NULL OR m.status = ?)
                   AND (
@@ -67,6 +80,43 @@ public class MemberController {
                   )
                 ORDER BY m.id DESC
                 """, statusFilter, statusFilter, likeKeyword, likeKeyword, likeKeyword, likeKeyword));
+    }
+
+    @GetMapping("/operation/profiles")
+    public ApiResponse<List<Map<String, Object>>> operationProfiles(
+            @RequestParam(required = false) String churnRisk,
+            @RequestParam(required = false) String segment) {
+        String riskFilter = churnRisk == null || churnRisk.isBlank() || "全部".equals(churnRisk) ? null : churnRisk;
+        String segmentFilter = segment == null || segment.isBlank() || "全部".equals(segment) ? null : segment;
+        return ApiResponse.success(jdbcTemplate.queryForList("""
+                SELECT m.id AS memberId, m.member_no AS memberNo, m.name, m.level, m.status,
+                       a.balance, a.total_consume AS totalConsume,
+                       p.favorite_games AS favoriteGames,
+                       p.preferred_time_slot AS preferredTimeSlot,
+                       p.beverage_preference AS beveragePreference,
+                       p.spending_power AS spendingPower,
+                       p.churn_risk AS churnRisk,
+                       p.segment,
+                       p.last_visit_at AS lastVisitAt,
+                       DATEDIFF(CURRENT_DATE, DATE(p.last_visit_at)) AS daysSinceLastVisit,
+                       p.recommendation,
+                       COALESCE(c.unused_coupons, 0) AS unusedCoupons
+                FROM member_info m
+                JOIN member_account a ON a.member_id = m.id
+                LEFT JOIN member_operation_profile p ON p.member_id = m.id
+                LEFT JOIN (
+                  SELECT member_id, COUNT(*) AS unused_coupons
+                  FROM member_coupon
+                  WHERE status = 'UNUSED' AND expires_at > NOW()
+                  GROUP BY member_id
+                ) c ON c.member_id = m.id
+                WHERE m.deleted = 0
+                  AND (? IS NULL OR p.churn_risk = ?)
+                  AND (? IS NULL OR p.segment = ?)
+                ORDER BY FIELD(p.churn_risk, 'HIGH', 'MEDIUM', 'LOW'),
+                         p.last_visit_at ASC,
+                         a.total_consume DESC
+                """, riskFilter, riskFilter, segmentFilter, segmentFilter));
     }
 
     @PostMapping

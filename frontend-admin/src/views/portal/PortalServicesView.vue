@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">呼叫与点餐</h1>
-        <p class="page-subtitle">呼叫前台或使用预存余额购买饮品、零食与简餐</p>
+        <p class="page-subtitle">呼叫前台，或使用预存余额购买饮品、零食、简餐与陪玩服务</p>
       </div>
       <div class="service-balance"><span>可用余额</span><strong>{{ money(balance) }}</strong></div>
     </div>
@@ -24,7 +24,7 @@
     <div class="service-market-grid">
       <section class="panel product-panel" v-loading="loading">
         <div class="panel-header product-toolbar">
-          <h2>门店商品</h2>
+          <h2>门店商品与陪玩</h2>
           <el-segmented v-model="category" :options="categoryOptions" size="small" />
         </div>
         <div class="product-grid">
@@ -96,7 +96,7 @@
 
 <script setup lang="ts">
 import { computed, markRaw, onMounted, reactive, ref } from 'vue'
-import { Bell, Box, CoffeeCup, Cpu, Dish, Food, Service, Wallet } from '@element-plus/icons-vue'
+import { Bell, Box, CoffeeCup, Cpu, Dish, Food, Medal, Service, Star, Trophy, Wallet } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../../api/http'
 
@@ -111,7 +111,9 @@ const callOptions = [
 ]
 const categoryOptions = [
   { label: '全部', value: 'ALL' }, { label: '饮品', value: 'DRINK' },
-  { label: '零食', value: 'SNACK' }, { label: '简餐', value: 'MEAL' }
+  { label: '零食', value: 'SNACK' }, { label: '简餐', value: 'MEAL' },
+  { label: '猫系陪玩', value: 'PLAYMATE_CAT' }, { label: '犬系陪玩', value: 'PLAYMATE_DOG' },
+  { label: '爬宠系陪玩', value: 'PLAYMATE_REPTILE' }
 ]
 const loading = ref(false)
 const paying = ref(false)
@@ -185,8 +187,17 @@ async function submitOrder() {
 function setQuantity(id: number, value: number) { cart[id] = value }
 function money(value: unknown) { return `¥${Number(value || 0).toFixed(2)}` }
 function formatDate(value: string) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
-function categoryLabel(value: string) { return ({ DRINK: '饮品', SNACK: '零食', MEAL: '简餐' } as any)[value] || value }
-function productIcon(value: string) { return value === 'DRINK' ? CoffeeCup : value === 'MEAL' ? Dish : Food }
+function categoryLabel(value: string) {
+  return ({ DRINK: '饮品', SNACK: '零食', MEAL: '简餐', PLAYMATE_CAT: '猫系陪玩', PLAYMATE_DOG: '犬系陪玩', PLAYMATE_REPTILE: '爬宠系陪玩' } as any)[value] || value
+}
+function productIcon(value: string) {
+  if (value === 'DRINK') return CoffeeCup
+  if (value === 'MEAL') return Dish
+  if (value === 'PLAYMATE_CAT') return Star
+  if (value === 'PLAYMATE_DOG') return Trophy
+  if (value === 'PLAYMATE_REPTILE') return Medal
+  return Food
+}
 function callLabel(value: string) { return ({ FRONT_DESK: '呼叫前台', CLEANING: '清洁机位', SUPPLIES: '补充用品', DEVICE_HELP: '设备协助' } as any)[value] || value }
 function orderStatus(value: string) { return ({ PENDING: '待接单', PREPARING: '准备中', DELIVERING: '配送中', COMPLETED: '已完成', CANCELLED: '已取消' } as any)[value] || value }
 function callStatus(value: string) { return ({ PENDING: '待响应', PROCESSING: '处理中', COMPLETED: '已完成', CANCELLED: '已取消' } as any)[value] || value }

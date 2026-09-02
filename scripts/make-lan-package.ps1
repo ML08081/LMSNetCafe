@@ -15,8 +15,9 @@ if (-not $resolvedOutput.StartsWith($resolvedRepo, [System.StringComparison]::Or
   throw "OutputDir must be inside the repository: $resolvedRepo"
 }
 
+# Include source, scripts, docs and example config only.
 $excludedDirs = @(
-  '.git', '.idea', '.vscode', '.dev-logs', 'node_modules', 'target', 'dist',
+  '.git', '.idea', '.dev-logs', 'node_modules', 'target', 'dist',
   'dist-electron', '.vite', '.venv', 'venv', '__pycache__', 'packages', 'logs'
 )
 $excludedFiles = @(
@@ -43,7 +44,7 @@ $robocopyArgs = @(
 ) + $excludedDirs + @(
   '/XF'
 ) + $excludedFiles + @(
-  '/NFL', '/NDL', '/NJH', '/NJS', '/NP'
+  '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NP'
 )
 & robocopy @robocopyArgs | Out-Null
 if ($LASTEXITCODE -gt 7) {

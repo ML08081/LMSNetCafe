@@ -4,6 +4,7 @@ import com.lms.netcafe.common.api.ApiResponse;
 import com.lms.netcafe.common.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -42,6 +43,9 @@ public class DeviceController {
                   id,
                   device_code AS deviceCode,
                   area,
+                  area_type AS areaType,
+                  room_capacity AS roomCapacity,
+                  hourly_rate_hint AS hourlyRateHint,
                   seat_no AS seatNo,
                   ip_address AS ipAddress,
                   config_desc AS configDesc,
@@ -56,10 +60,11 @@ public class DeviceController {
                     OR device_code LIKE ?
                     OR seat_no LIKE ?
                     OR ip_address LIKE ?
+                    OR area_type LIKE ?
                   )
                 ORDER BY area, seat_no
                 """, areaFilter, areaFilter, statusFilter, statusFilter,
-                likeKeyword, likeKeyword, likeKeyword, likeKeyword));
+                likeKeyword, likeKeyword, likeKeyword, likeKeyword, likeKeyword));
     }
 
     @PostMapping
@@ -67,10 +72,13 @@ public class DeviceController {
         validateStatus(request.status());
         ensureDeviceCodeAvailable(request.deviceCode(), null);
         jdbcTemplate.update("""
-                INSERT INTO device_info (device_code, area, seat_no, ip_address, config_desc, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """, request.deviceCode(), request.area(), request.seatNo(), request.ipAddress(),
-                request.configDesc(), request.status());
+                INSERT INTO device_info
+                  (device_code, area, area_type, room_capacity, hourly_rate_hint,
+                   seat_no, ip_address, config_desc, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, request.deviceCode(), request.area(), normalizeAreaType(request.areaType()),
+                normalizeCapacity(request.roomCapacity()), request.hourlyRateHint(), request.seatNo(),
+                request.ipAddress(), request.configDesc(), request.status());
         Long deviceId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
         return ApiResponse.success(Map.of("id", deviceId));
     }
@@ -83,10 +91,12 @@ public class DeviceController {
         ensureMutableStatus((String) device.get("status"), request.status());
         jdbcTemplate.update("""
                 UPDATE device_info
-                SET device_code = ?, area = ?, seat_no = ?, ip_address = ?, config_desc = ?, status = ?
+                SET device_code = ?, area = ?, area_type = ?, room_capacity = ?, hourly_rate_hint = ?,
+                    seat_no = ?, ip_address = ?, config_desc = ?, status = ?
                 WHERE id = ? AND deleted = 0
-                """, request.deviceCode(), request.area(), request.seatNo(), request.ipAddress(),
-                request.configDesc(), request.status(), deviceId);
+                """, request.deviceCode(), request.area(), normalizeAreaType(request.areaType()),
+                normalizeCapacity(request.roomCapacity()), request.hourlyRateHint(), request.seatNo(),
+                request.ipAddress(), request.configDesc(), request.status(), deviceId);
         return ApiResponse.success(null);
     }
 
@@ -145,9 +155,23 @@ public class DeviceController {
         }
     }
 
+    private String normalizeAreaType(String areaType) {
+        return areaType == null || areaType.isBlank() ? "LOBBY" : areaType.trim();
+    }
+
+    private Integer normalizeCapacity(Integer roomCapacity) {
+        if (roomCapacity == null || roomCapacity < 1) {
+            return 1;
+        }
+        return Math.min(roomCapacity, 5);
+    }
+
     public record SaveDeviceRequest(
             @NotBlank String deviceCode,
             @NotBlank String area,
+            String areaType,
+            Integer roomCapacity,
+            BigDecimal hourlyRateHint,
             @NotBlank String seatNo,
             String ipAddress,
             String configDesc,
@@ -157,6 +181,9 @@ public class DeviceController {
     public record UpdateDeviceRequest(
             @NotBlank String deviceCode,
             @NotBlank String area,
+            String areaType,
+            Integer roomCapacity,
+            BigDecimal hourlyRateHint,
             @NotBlank String seatNo,
             String ipAddress,
             String configDesc,

@@ -57,6 +57,16 @@ public class CustomerPortalController {
         result.put("profile", profile);
         result.put("currentSession", running.isEmpty() ? null : running.get(0));
         result.put("availableDevices", availableDevices);
+        result.put("operationProfile", queryOperationProfile(memberId));
+        result.put("coupons", jdbcTemplate.queryForList("""
+                SELECT coupon_no AS couponNo, coupon_type AS couponType, title,
+                       discount_amount AS discountAmount, min_spend AS minSpend,
+                       source_reason AS sourceReason, expires_at AS expiresAt
+                FROM member_coupon
+                WHERE member_id = ? AND status = 'UNUSED' AND expires_at > NOW()
+                ORDER BY expires_at ASC, id DESC
+                LIMIT 5
+                """, memberId));
         return ApiResponse.success(result);
     }
 
@@ -90,7 +100,9 @@ public class CustomerPortalController {
         requireMemberId(user);
         return ApiResponse.success(jdbcTemplate.queryForList("""
                 SELECT id, device_code AS deviceCode, area, seat_no AS seatNo,
-                       config_desc AS configDesc, status, updated_at AS updatedAt
+                       area_type AS areaType, room_capacity AS roomCapacity,
+                       hourly_rate_hint AS hourlyRateHint, config_desc AS configDesc,
+                       status, updated_at AS updatedAt
                 FROM device_info
                 WHERE deleted = 0
                 ORDER BY area, seat_no
@@ -149,6 +161,18 @@ public class CustomerPortalController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前账号未绑定会员资料");
         }
         return user.memberId();
+    }
+
+    private Map<String, Object> queryOperationProfile(Long memberId) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT favorite_games AS favoriteGames, preferred_time_slot AS preferredTimeSlot,
+                       beverage_preference AS beveragePreference, spending_power AS spendingPower,
+                       churn_risk AS churnRisk, segment, last_visit_at AS lastVisitAt,
+                       recommendation
+                FROM member_operation_profile
+                WHERE member_id = ?
+                """, memberId);
+        return rows.isEmpty() ? Map.of() : rows.get(0);
     }
 
     public record FaultRequest(@NotNull Long deviceId, @NotBlank String description) {

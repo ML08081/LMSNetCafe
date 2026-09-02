@@ -11,6 +11,9 @@
 | `face-service` | Python 3.11, FastAPI | Face enrollment, verification and identification service |
 | `desktop-pet` | Electron, Vue 3, Vite, TypeScript | Client-side desktop pet and session reminder app |
 | `scripts` | SQL, PowerShell | Database bootstrap and local development helpers |
+| `deploy` | env examples | LAN host/client environment templates |
+| `开发文档` | Markdown | Requirement, architecture, database, thesis, LAN deployment and migration guides |
+| `.vscode` | VSCode settings | Recommended workspace settings, extensions and tasks |
 
 ## Quick Start
 
@@ -21,6 +24,9 @@
 ## Local Commands
 
 ```powershell
+# one-click LAN host startup
+npm run start:lan
+
 # backend
 cd backend
 mvn spring-boot:run
@@ -45,4 +51,4 @@ npm run dev
 
 ## Notes
 
-统一入口：`http://127.0.0.1:5173/login`。密码登录和人脸识别登录共用三角色权限体系；桌宠默认绑定演示机位 `PC-A01`。
+统一入口：`http://127.0.0.1:5173/login`。局域网访问时使用主机脚本输出的 `http://主机IP:5173/login`。密码登录和人脸识别登录共用三角色权限体系；桌宠默认绑定演示机位 `PC-A01`。

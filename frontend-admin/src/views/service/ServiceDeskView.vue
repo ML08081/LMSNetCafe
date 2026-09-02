@@ -1,7 +1,7 @@
 <template>
   <section class="page service-desk-page">
     <div class="page-header">
-      <div><h1 class="page-title">服务与订单</h1><p class="page-subtitle">处理会员机位呼叫、点餐订单和配送进度</p></div>
+      <div><h1 class="page-title">服务与订单</h1><p class="page-subtitle">处理会员机位呼叫、点餐订单、陪玩服务和配送进度</p></div>
       <el-button :icon="Refresh" :loading="loading" circle title="刷新" @click="loadAll" />
     </div>
 
@@ -24,7 +24,7 @@
             <el-table-column label="处理" width="150" fixed="right"><template #default="scope"><el-select :model-value="scope.row.status" size="small" :disabled="['COMPLETED', 'CANCELLED'].includes(scope.row.status)" @change="(value: string) => updateCall(scope.row, value)"><el-option v-for="item in callOptions(scope.row.status)" :key="item.value" :label="item.label" :value="item.value" /></el-select></template></el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane name="orders"><template #label>点餐订单 <el-badge :value="pendingOrders" :hidden="!pendingOrders" /></template>
+        <el-tab-pane name="orders"><template #label>点单/陪玩订单 <el-badge :value="pendingOrders" :hidden="!pendingOrders" /></template>
           <el-table :data="orders" empty-text="暂无点餐订单">
             <el-table-column label="状态" width="120"><template #default="scope"><el-tag :type="statusType(scope.row.status)">{{ orderStatus(scope.row.status) }}</el-tag></template></el-table-column>
             <el-table-column prop="orderNo" label="订单号" width="190" />
@@ -95,6 +95,6 @@ function money(value: unknown) { return `¥${Number(value || 0).toFixed(2)}` }
 function formatDate(value: string) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
 function callLabel(value: string) { return ({ FRONT_DESK: '呼叫前台', CLEANING: '清洁机位', SUPPLIES: '补充用品', DEVICE_HELP: '设备协助' } as any)[value] || value }
 function callStatus(value: string) { return ({ PENDING: '待响应', PROCESSING: '处理中', COMPLETED: '已完成', CANCELLED: '已取消' } as any)[value] || value }
-function orderStatus(value: string) { return ({ PENDING: '待接单', PREPARING: '准备中', DELIVERING: '配送中', COMPLETED: '已完成', CANCELLED: '已取消' } as any)[value] || value }
+function orderStatus(value: string) { return ({ PENDING: '待接单', PREPARING: '准备/匹配中', DELIVERING: '配送/服务中', COMPLETED: '已完成', CANCELLED: '已取消' } as any)[value] || value }
 function statusType(value: string) { return value === 'COMPLETED' ? 'success' : value === 'CANCELLED' ? 'info' : value === 'PENDING' ? 'warning' : 'primary' }
 </script>

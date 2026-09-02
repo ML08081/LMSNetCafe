@@ -54,7 +54,7 @@
         <el-form label-width="86px">
           <el-form-item label="目标机位">
             <el-select v-model="selectedSeat" placeholder="选择空闲机位" style="width: 100%">
-              <el-option v-for="seat in idleSeats" :key="seat.id" :label="seat.deviceCode" :value="seat.id" />
+              <el-option v-for="seat in idleSeats" :key="seat.id" :label="`${seat.deviceCode} · ${seat.area} · ${seat.roomCapacity || 1}人`" :value="seat.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="计费规则">
@@ -76,12 +76,12 @@
     <section class="panel">
       <div class="panel-header">
         <h2>机位选择</h2>
-        <el-segmented v-model="area" :options="['全部', 'A区', 'B区', 'VIP区']" />
+        <el-segmented v-model="area" :options="areaOptions" />
       </div>
       <div class="seat-grid">
         <button v-for="seat in seats" :key="seat.deviceCode" class="seat-button" :class="seat.statusType">
           <strong>{{ seat.deviceCode }}</strong>
-          <span>{{ seat.label }}</span>
+          <span>{{ seat.label }} · {{ seat.roomCapacity || 1 }}人</span>
         </button>
       </div>
     </section>
@@ -146,6 +146,7 @@ const visibleDevices = computed(() => area.value === '全部'
 const idleSeats = computed(() => visibleDevices.value.filter((item) => item.rawStatus === 'IDLE'))
 
 const seats = computed(() => visibleDevices.value)
+const areaOptions = computed(() => ['全部', ...Array.from(new Set(devices.value.map((item) => item.area)))])
 
 const selectedRuleLabel = computed(() => {
   const rule = billingRules.value.find((item) => item.id === billingRule.value)

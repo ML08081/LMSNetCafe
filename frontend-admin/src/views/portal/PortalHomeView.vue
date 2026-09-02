@@ -70,6 +70,37 @@
       </section>
     </div>
 
+    <div class="dashboard-grid">
+      <section class="panel profile-insight-panel">
+        <div class="panel-header">
+          <div>
+            <h2>我的上网画像</h2>
+            <p class="panel-description">系统根据上机、消费和到店记录生成偏好标签</p>
+          </div>
+          <el-tag :type="riskType(operationProfile.churnRisk)">{{ riskLabel(operationProfile.churnRisk) }}</el-tag>
+        </div>
+        <div class="profile-insight-grid">
+          <div><span>会员分层</span><strong>{{ operationProfile.segment || '-' }}</strong></div>
+          <div><span>常玩内容</span><strong>{{ operationProfile.favoriteGames || '-' }}</strong></div>
+          <div><span>常上机时段</span><strong>{{ operationProfile.preferredTimeSlot || '-' }}</strong></div>
+          <div><span>饮食偏好</span><strong>{{ operationProfile.beveragePreference || '-' }}</strong></div>
+        </div>
+        <p class="insight-recommendation">{{ operationProfile.recommendation || '暂无新的运营建议。' }}</p>
+      </section>
+
+      <section class="panel coupon-panel">
+        <div class="panel-header"><h2>专属优惠</h2><el-tag>{{ coupons.length }} 张可用</el-tag></div>
+        <div v-if="coupons.length" class="coupon-list">
+          <article v-for="coupon in coupons" :key="coupon.couponNo">
+            <strong>{{ coupon.title }}</strong>
+            <span>满 {{ money(coupon.minSpend) }} 可用 · 减 {{ money(coupon.discountAmount) }}</span>
+            <small>{{ coupon.sourceReason }}</small>
+          </article>
+        </div>
+        <el-empty v-else description="暂无可用优惠券" :image-size="72" />
+      </section>
+    </div>
+
     <section class="panel pet-setting-panel" v-loading="petLoading">
       <div class="panel-header">
         <div><h2>桌面宠物</h2><p class="panel-description">设置会同步到当前上机电脑，最长约 5 秒生效</p></div>
@@ -101,6 +132,8 @@ const overview = ref<any>({ profile: {}, currentSession: null, availableDevices:
 const petSetting = reactive({ enabled: true, alwaysOnTop: true, showBubble: true })
 const profile = computed(() => overview.value.profile ?? {})
 const currentSession = computed(() => overview.value.currentSession)
+const operationProfile = computed(() => overview.value.operationProfile ?? {})
+const coupons = computed(() => overview.value.coupons ?? [])
 
 onMounted(async () => {
   loading.value = true
@@ -131,4 +164,6 @@ async function savePetSetting() {
 function money(value: unknown) { return `¥${Number(value ?? 0).toFixed(2)}` }
 function formatDate(value: string) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
 function levelLabel(value: string) { return value === 'VIP' ? 'VIP 会员' : '普通会员' }
+function riskLabel(value: string) { return ({ HIGH: '高流失风险', MEDIUM: '中流失风险', LOW: '低流失风险' } as Record<string, string>)[value] || '画像生成中' }
+function riskType(value: string) { return value === 'HIGH' ? 'danger' : value === 'MEDIUM' ? 'warning' : 'success' }
 </script>

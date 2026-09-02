@@ -1,0 +1,27 @@
+{
+  // VSCode 打开根目录后，TypeScript、Vue、Java 和 Python 都以当前工作区为准。
+  "files.encoding": "utf8",
+  "files.eol": "\r\n",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "typescript.tsdk": "frontend-admin/node_modules/typescript/lib",
+  "python.defaultInterpreterPath": "face-service/.venv/Scripts/python.exe",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/dist": true,
+    "**/dist-electron": true,
+    "**/.venv": true,
+    "**/.dev-logs": true,
+    "**/packages": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/target/**": true,
+    "**/dist/**": true,
+    "**/dist-electron/**": true,
+    "**/.venv/**": true,
+    "**/.dev-logs/**": true
+  }
+}

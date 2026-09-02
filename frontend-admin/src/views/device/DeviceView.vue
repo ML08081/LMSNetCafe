@@ -11,12 +11,12 @@
     <section class="panel">
       <div class="panel-header">
         <h2>机位地图</h2>
-        <el-segmented v-model="filters.area" :options="['全部', 'A区', 'B区', 'VIP区']" @change="loadDevices" />
+        <el-segmented v-model="filters.area" :options="areaOptions.map(item => item.label)" @change="loadDevices" />
       </div>
       <div class="seat-grid">
         <button v-for="device in devices" :key="device.deviceCode" class="seat-button" :class="device.statusType">
           <strong>{{ device.deviceCode }}</strong>
-          <span>{{ device.statusLabel }}</span>
+          <span>{{ device.statusLabel }} · {{ device.roomCapacity || 1 }}人</span>
         </button>
       </div>
     </section>
@@ -45,8 +45,14 @@
       </div>
       <el-table v-loading="loading" :data="devices" style="width: 100%">
         <el-table-column prop="deviceCode" label="设备编号" width="130" />
-        <el-table-column prop="area" label="区域" width="100" />
+        <el-table-column prop="area" label="区域" width="140" />
+        <el-table-column prop="roomCapacity" label="容量" width="90">
+          <template #default="{ row }">{{ row.roomCapacity || 1 }} 人</template>
+        </el-table-column>
         <el-table-column prop="seatNo" label="座位号" width="100" />
+        <el-table-column label="参考价" width="120">
+          <template #default="{ row }">{{ row.hourlyRateHint ? money(row.hourlyRateHint) + '/小时' : '-' }}</template>
+        </el-table-column>
         <el-table-column prop="ipAddress" label="IP 地址" width="150" />
         <el-table-column prop="configDesc" label="配置" />
         <el-table-column label="状态" width="110">
@@ -72,11 +78,18 @@
           <el-input v-model="form.deviceCode" placeholder="如 PC-A07" />
         </el-form-item>
         <el-form-item label="区域" required>
-          <el-select v-model="form.area" allow-create filterable style="width: 100%">
-            <el-option label="A区" value="A区" />
-            <el-option label="B区" value="B区" />
-            <el-option label="VIP区" value="VIP区" />
+          <el-select v-model="form.area" filterable style="width: 100%" @change="syncAreaMeta">
+            <el-option v-for="item in areaOptions.filter(item => item.value !== '全部')" :key="item.value" :label="item.label" :value="item.label" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="房型">
+          <el-input :model-value="areaTypeLabel(form.areaType)" disabled />
+        </el-form-item>
+        <el-form-item label="容量">
+          <el-input-number v-model="form.roomCapacity" :min="1" :max="5" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="参考价">
+          <el-input-number v-model="form.hourlyRateHint" :min="0" :precision="2" :step="1" style="width: 100%" />
         </el-form-item>
         <el-form-item label="座位号" required>
           <el-input v-model="form.seatNo" placeholder="如 A07" />
@@ -147,9 +160,21 @@ const faultTarget = ref<any>()
 const devices = ref<any[]>([])
 const auth = useAuthStore()
 const canMaintain = computed(() => auth.hasPermission('maintenance:manage'))
+const areaOptions = [
+  { label: '全部', value: '全部', areaType: 'ALL', capacity: 1, rate: 10 },
+  { label: '大厅A区', value: '大厅A区', areaType: 'LOBBY_A', capacity: 1, rate: 10 },
+  { label: '大厅B区', value: '大厅B区', areaType: 'LOBBY_B', capacity: 1, rate: 12 },
+  { label: '单人豪华包房', value: '单人豪华包房', areaType: 'ROOM_SINGLE_LUXURY', capacity: 1, rate: 22 },
+  { label: '双人包房', value: '双人包房', areaType: 'ROOM_DOUBLE', capacity: 2, rate: 36 },
+  { label: '四人包房', value: '四人包房', areaType: 'ROOM_QUAD', capacity: 4, rate: 62 },
+  { label: '五人包房', value: '五人包房', areaType: 'ROOM_FIVE', capacity: 5, rate: 78 }
+]
 const form = reactive({
   deviceCode: '',
-  area: 'A区',
+  area: '大厅A区',
+  areaType: 'LOBBY_A',
+  roomCapacity: 1,
+  hourlyRateHint: 10,
   seatNo: '',
   ipAddress: '',
   configDesc: '',
@@ -197,7 +222,10 @@ function openCreate() {
   editingId.value = undefined
   Object.assign(form, {
     deviceCode: '',
-    area: 'A区',
+    area: '大厅A区',
+    areaType: 'LOBBY_A',
+    roomCapacity: 1,
+    hourlyRateHint: 10,
     seatNo: '',
     ipAddress: '',
     configDesc: '',
@@ -211,6 +239,9 @@ function openEdit(row: any) {
   Object.assign(form, {
     deviceCode: row.deviceCode,
     area: row.area,
+    areaType: row.areaType || 'LOBBY_A',
+    roomCapacity: Number(row.roomCapacity || 1),
+    hourlyRateHint: Number(row.hourlyRateHint || 0),
     seatNo: row.seatNo,
     ipAddress: row.ipAddress ?? '',
     configDesc: row.configDesc ?? '',
@@ -229,6 +260,9 @@ async function saveDevice() {
     const payload = {
       deviceCode: form.deviceCode.trim(),
       area: form.area.trim(),
+      areaType: form.areaType,
+      roomCapacity: form.roomCapacity,
+      hourlyRateHint: form.hourlyRateHint,
       seatNo: form.seatNo.trim(),
       ipAddress: form.ipAddress?.trim(),
       configDesc: form.configDesc?.trim(),
@@ -278,5 +312,28 @@ async function submitFault() {
   } finally {
     saving.value = false
   }
+}
+
+function syncAreaMeta() {
+  const option = areaOptions.find(item => item.label === form.area)
+  if (!option) return
+  form.areaType = option.areaType
+  form.roomCapacity = option.capacity
+  form.hourlyRateHint = option.rate
+}
+
+function money(value: unknown) {
+  return `¥${Number(value ?? 0).toFixed(2)}`
+}
+
+function areaTypeLabel(value: string) {
+  return ({
+    LOBBY_A: '大厅 A 区',
+    LOBBY_B: '大厅 B 区',
+    ROOM_SINGLE_LUXURY: '单人豪华包房',
+    ROOM_DOUBLE: '双人包房',
+    ROOM_QUAD: '四人包房',
+    ROOM_FIVE: '五人包房'
+  } as Record<string, string>)[value] || value
 }
 </script>
