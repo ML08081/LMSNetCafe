@@ -651,6 +651,10 @@ body {
   margin: 0;
 }
 
+.operation-summary-grid {
+  margin-bottom: 16px;
+}
+
 .profile-insight-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

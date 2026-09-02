@@ -80,6 +80,12 @@
           </el-form-item>
         </el-form>
       </div>
+      <div class="metric-grid operation-summary-grid">
+        <article class="metric-card"><div class="metric-label">画像会员</div><div class="metric-value">{{ operationProfiles.length }}</div></article>
+        <article class="metric-card"><div class="metric-label">高流失风险</div><div class="metric-value">{{ highRiskCount }}</div></article>
+        <article class="metric-card"><div class="metric-label">可用优惠券</div><div class="metric-value">{{ unusedCouponCount }}</div></article>
+        <article class="metric-card"><div class="metric-label">高消费能力</div><div class="metric-value">{{ highSpendingCount }}</div></article>
+      </div>
       <el-table v-loading="operationLoading" :data="operationProfiles" style="width: 100%">
         <el-table-column prop="memberNo" label="会员编号" width="120" />
         <el-table-column prop="name" label="姓名" width="100" />
@@ -137,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../../api/http'
 
@@ -154,6 +160,9 @@ const members = ref<any[]>([])
 const operationProfiles = ref<any[]>([])
 const filters = reactive({ keyword: '', status: '' })
 const operationFilters = reactive({ churnRisk: '全部' })
+const highRiskCount = computed(() => operationProfiles.value.filter(item => item.churnRisk === 'HIGH').length)
+const highSpendingCount = computed(() => operationProfiles.value.filter(item => item.spendingPower === 'HIGH').length)
+const unusedCouponCount = computed(() => operationProfiles.value.reduce((sum, item) => sum + Number(item.unusedCoupons || 0), 0))
 const form = reactive({
   memberNo: '',
   name: '',

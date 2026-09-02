@@ -498,7 +498,15 @@ DELETE FROM sys_role WHERE id NOT IN (1, 2, 3);
 INSERT INTO sys_user (id, member_id, username, password_hash, real_name, status, deleted) VALUES
   (1, NULL, 'admin', '{noop}123456', '系统管理员', 'ENABLED', 0),
   (3, NULL, 'cashier', '{noop}123456', '前台人员', 'ENABLED', 0),
-  (5, 1, 'member001', '{noop}123456', '张三', 'ENABLED', 0)
+  (5, 1, 'member001', '{noop}123456', '张三', 'ENABLED', 0),
+  (6, 2, 'member002', '{noop}123456', '李四', 'ENABLED', 0),
+  (7, 4, 'member004', '{noop}123456', '赵六', 'ENABLED', 0),
+  (8, 5, 'member005', '{noop}123456', '陈晨', 'ENABLED', 0),
+  (9, 6, 'member006', '{noop}123456', '周周', 'ENABLED', 0),
+  (10, 7, 'member007', '{noop}123456', '林悦', 'ENABLED', 0),
+  (11, 8, 'member008', '{noop}123456', '唐宇', 'ENABLED', 0),
+  (12, 9, 'member009', '{noop}123456', '何苗', 'ENABLED', 0),
+  (13, 10, 'member010', '{noop}123456', '高远', 'ENABLED', 0)
 ON DUPLICATE KEY UPDATE
   member_id = VALUES(member_id),
   password_hash = VALUES(password_hash),
@@ -513,7 +521,15 @@ WHERE username IN ('manager', 'repair');
 INSERT INTO sys_user_role (user_id, role_id) VALUES
   (1, 1),
   (3, 2),
-  (5, 3);
+  (5, 3),
+  (6, 3),
+  (7, 3),
+  (8, 3),
+  (9, 3),
+  (10, 3),
+  (11, 3),
+  (12, 3),
+  (13, 3);
 
 INSERT IGNORE INTO sys_permission (id, permission_code, permission_name, permission_type, route_path, sort_order) VALUES
   (1, 'dashboard:view', '经营看板', 'MENU', '/', 10),
@@ -551,17 +567,41 @@ INSERT IGNORE INTO billing_rule (id, rule_name, price_per_hour, min_minutes, bil
   (6, '四人包房', 62.00, 60, 30, 50.00),
   (7, '五人包房', 78.00, 60, 30, 60.00);
 
-INSERT IGNORE INTO member_info (id, member_no, name, phone, id_card_no, level, status) VALUES
+INSERT INTO member_info (id, member_no, name, phone, id_card_no, level, status) VALUES
   (1, 'M0001', '张三', '13800000001', 'MASKED-0001', 'NORMAL', 'ACTIVE'),
   (2, 'M0002', '李四', '13800000002', 'MASKED-0002', 'VIP', 'ACTIVE'),
   (3, 'M0003', '王五', '13800000003', 'MASKED-0003', 'NORMAL', 'FROZEN'),
-  (4, 'M0004', '赵六', '13800000004', 'MASKED-0004', 'NORMAL', 'ACTIVE');
+  (4, 'M0004', '赵六', '13800000004', 'MASKED-0004', 'VIP', 'ACTIVE'),
+  (5, 'M0005', '陈晨', '13800000005', 'MASKED-0005', 'NORMAL', 'ACTIVE'),
+  (6, 'M0006', '周周', '13800000006', 'MASKED-0006', 'VIP', 'ACTIVE'),
+  (7, 'M0007', '林悦', '13800000007', 'MASKED-0007', 'NORMAL', 'ACTIVE'),
+  (8, 'M0008', '唐宇', '13800000008', 'MASKED-0008', 'VIP', 'ACTIVE'),
+  (9, 'M0009', '何苗', '13800000009', 'MASKED-0009', 'NORMAL', 'ACTIVE'),
+  (10, 'M0010', '高远', '13800000010', 'MASKED-0010', 'VIP', 'ACTIVE')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  phone = VALUES(phone),
+  id_card_no = VALUES(id_card_no),
+  level = VALUES(level),
+  status = VALUES(status),
+  deleted = 0;
 
-INSERT IGNORE INTO member_account (id, member_id, balance, total_recharge, total_consume) VALUES
-  (1, 1, 57.30, 100.00, 42.70),
-  (2, 2, 6.50, 60.00, 53.50),
+INSERT INTO member_account (id, member_id, balance, total_recharge, total_consume) VALUES
+  (1, 1, 86.30, 180.00, 93.70),
+  (2, 2, 28.50, 260.00, 231.50),
   (3, 3, 0.00, 0.00, 0.00),
-  (4, 4, 88.00, 120.00, 32.00);
+  (4, 4, 188.00, 360.00, 172.00),
+  (5, 5, 122.00, 220.00, 98.00),
+  (6, 6, 310.00, 600.00, 290.00),
+  (7, 7, 16.00, 80.00, 64.00),
+  (8, 8, 76.00, 300.00, 224.00),
+  (9, 9, 45.00, 120.00, 75.00),
+  (10, 10, 520.00, 1000.00, 480.00)
+ON DUPLICATE KEY UPDATE
+  balance = VALUES(balance),
+  total_recharge = VALUES(total_recharge),
+  total_consume = VALUES(total_consume),
+  version = version + 1;
 
 INSERT INTO member_operation_profile
   (member_id, favorite_games, preferred_time_slot, beverage_preference, spending_power,
@@ -578,7 +618,25 @@ VALUES
    '超过 14 天未到店，建议推送包夜代金券'),
   (4, '永劫无间、黑神话、主机游戏', '周末 18:00-24:00', '黑椒鸡排饭、每日坚果',
    'HIGH', 'LOW', '高价值包房用户', '2026-09-01 20:00:00', '2026-09-01 20:40:00',
-   '推荐四人包房套餐和陪玩服务')
+   '推荐四人包房套餐和陪玩服务'),
+  (5, '云顶之弈、Steam 合作游戏、派对游戏', '晚间 18:00-22:00', '柠檬茶、薯片',
+   'MEDIUM', 'LOW', '轻社交开黑用户', '2026-09-02 19:10:00', '2026-09-02 19:25:00',
+   '推荐双人包房和轻食组合券'),
+  (6, '瓦罗兰特、CS2、Apex Legends', '深夜 22:00-03:00', '能量饮料、罐装咖啡',
+   'HIGH', 'LOW', '竞技上分用户', '2026-09-02 21:00:00', '2026-09-02 21:05:00',
+   '推荐五人包房、猫系陪玩和战队训练套餐'),
+  (7, '影视追剧、模拟经营、休闲小游戏', '下午 13:00-17:00', '矿泉水、巧克力',
+   'LOW', 'HIGH', '低频休闲用户', '2026-08-12 15:20:00', NULL,
+   '超过 14 天未到店，建议推送下午场上机券'),
+  (8, '英雄联盟、永劫无间、派对游戏', '周末 20:00-02:00', '烤肠、能量饮料',
+   'MEDIUM', 'MEDIUM', '周末组队用户', '2026-08-25 22:10:00', '2026-08-25 23:05:00',
+   '推荐周末四人包房券和犬系陪玩'),
+  (9, '地下城与勇士、魔兽世界、刷本搬砖', '上午 09:00-13:00', '冰红茶、香辣牛肉面',
+   'MEDIUM', 'MEDIUM', '长时段刷本用户', '2026-08-24 10:30:00', '2026-08-24 11:00:00',
+   '推荐上午连充时长包和简餐折扣'),
+  (10, '无畏契约、CS2、战队训练赛', '晚间 19:00-01:00', '黑椒鸡排饭、罐装咖啡',
+   'HIGH', 'LOW', '高价值战队用户', '2026-09-02 20:30:00', '2026-09-02 20:45:00',
+   '推荐五人战队房、包夜套餐和陪练组合')
 ON DUPLICATE KEY UPDATE
   favorite_games = VALUES(favorite_games),
   preferred_time_slot = VALUES(preferred_time_slot),
@@ -599,7 +657,21 @@ VALUES
   (2, 'CP202609020002', 2, 'DRINK_DISCOUNT', '下午场饮品折扣券', 3.00, NULL, 10.00,
    'UNUSED', '休闲追剧用户偏好饮品', '2026-09-30 23:59:59'),
   (3, 'CP202609020003', 4, 'ROOM_PACKAGE', '包房用户加时券', 20.00, NULL, 80.00,
-   'UNUSED', '高价值包房用户运营', '2026-10-02 23:59:59')
+   'UNUSED', '高价值包房用户运营', '2026-10-02 23:59:59'),
+  (4, 'CP202609020004', 1, 'PLAYMATE_DISCOUNT', '猫系陪玩新人券', 8.00, NULL, 25.00,
+   'UNUSED', '游戏发烧友偏好陪玩服务', '2026-09-25 23:59:59'),
+  (5, 'CP202609020005', 1, 'DRINK_DISCOUNT', '竞技饮品加购券', 4.00, NULL, 12.00,
+   'UNUSED', '晚间高频上机用户饮品偏好', '2026-09-20 23:59:59'),
+  (6, 'CP202609020006', 6, 'ROOM_PACKAGE', '五人战队房满减券', 30.00, NULL, 150.00,
+   'UNUSED', '高价值战队用户运营', '2026-10-08 23:59:59'),
+  (7, 'CP202609020007', 7, 'MACHINE_VOUCHER', '下午场召回券', 12.00, NULL, 25.00,
+   'UNUSED', '低频休闲用户流失预警', '2026-09-28 23:59:59'),
+  (8, 'CP202609020008', 8, 'PLAYMATE_DISCOUNT', '犬系陪玩体验券', 10.00, NULL, 30.00,
+   'UNUSED', '周末组队用户推荐', '2026-10-05 23:59:59'),
+  (9, 'CP202609020009', 9, 'MEAL_DISCOUNT', '上午简餐补给券', 6.00, NULL, 20.00,
+   'UNUSED', '长时段刷本用户餐食偏好', '2026-09-26 23:59:59'),
+  (10, 'CP202609020010', 10, 'ROOM_PACKAGE', '战队包夜加时券', 50.00, NULL, 260.00,
+   'UNUSED', '高价值战队用户复购激励', '2026-10-15 23:59:59')
 ON DUPLICATE KEY UPDATE
   title = VALUES(title),
   discount_amount = VALUES(discount_amount),
@@ -613,27 +685,48 @@ INSERT INTO member_pet_setting (member_id, enabled, always_on_top, show_bubble) 
   (1, 1, 1, 1),
   (2, 1, 1, 1),
   (3, 1, 1, 1),
-  (4, 1, 1, 1)
+  (4, 1, 1, 1),
+  (5, 1, 1, 1),
+  (6, 1, 1, 1),
+  (7, 1, 1, 1),
+  (8, 1, 1, 1),
+  (9, 1, 1, 1),
+  (10, 1, 1, 1)
 ON DUPLICATE KEY UPDATE member_id = VALUES(member_id);
 
 INSERT INTO shop_product (id, product_code, product_name, category, price, stock, status, sort_order) VALUES
   (1, 'DRINK-COLA', '冰镇可乐', 'DRINK', 5.00, 80, 'ENABLED', 10),
   (2, 'DRINK-TEA', '冰红茶', 'DRINK', 5.00, 60, 'ENABLED', 20),
   (3, 'DRINK-COFFEE', '罐装咖啡', 'DRINK', 8.00, 40, 'ENABLED', 30),
-  (4, 'SNACK-CHIPS', '薯片', 'SNACK', 7.00, 50, 'ENABLED', 40),
-  (5, 'SNACK-SAUSAGE', '烤肠', 'SNACK', 6.00, 45, 'ENABLED', 50),
-  (6, 'SNACK-NUTS', '每日坚果', 'SNACK', 10.00, 35, 'ENABLED', 60),
-  (7, 'MEAL-NOODLES', '香辣牛肉面', 'MEAL', 12.00, 30, 'ENABLED', 70),
-  (8, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 22.00, 25, 'ENABLED', 80),
-  (9, 'PLAY-CAT-FPS', '猫系陪玩·FPS 枪王 30 分钟', 'PLAYMATE_CAT', 28.00, 12, 'ENABLED', 110),
-  (10, 'PLAY-CAT-MOBA', '猫系陪玩·MOBA 辅助指挥', 'PLAYMATE_CAT', 26.00, 10, 'ENABLED', 120),
-  (11, 'PLAY-DOG-MOBA', '犬系陪玩·上分冲锋 30 分钟', 'PLAYMATE_DOG', 30.00, 10, 'ENABLED', 130),
-  (12, 'PLAY-DOG-FUN', '犬系陪玩·休闲整活 30 分钟', 'PLAYMATE_DOG', 22.00, 14, 'ENABLED', 140),
-  (13, 'PLAY-REPTILE-STRATEGY', '爬宠系陪玩·策略教学 30 分钟', 'PLAYMATE_REPTILE', 35.00, 8, 'ENABLED', 150),
-  (14, 'PLAY-REPTILE-AIM', '爬宠系陪玩·压枪训练 30 分钟', 'PLAYMATE_REPTILE', 32.00, 8, 'ENABLED', 160)
+  (4, 'DRINK-ENERGY', '能量饮料', 'DRINK', 9.00, 55, 'ENABLED', 40),
+  (5, 'DRINK-LEMON', '冻柠茶', 'DRINK', 7.00, 45, 'ENABLED', 50),
+  (6, 'DRINK-WATER', '矿泉水', 'DRINK', 3.00, 100, 'ENABLED', 60),
+  (7, 'SNACK-CHIPS', '薯片', 'SNACK', 7.00, 50, 'ENABLED', 70),
+  (8, 'SNACK-SAUSAGE', '烤肠', 'SNACK', 6.00, 45, 'ENABLED', 80),
+  (9, 'SNACK-NUTS', '每日坚果', 'SNACK', 10.00, 35, 'ENABLED', 90),
+  (10, 'SNACK-LATIAO', '香辣条', 'SNACK', 4.00, 70, 'ENABLED', 100),
+  (11, 'SNACK-CHOCO', '巧克力棒', 'SNACK', 6.00, 42, 'ENABLED', 110),
+  (12, 'MEAL-NOODLES', '香辣牛肉面', 'MEAL', 12.00, 30, 'ENABLED', 120),
+  (13, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 22.00, 25, 'ENABLED', 130),
+  (14, 'MEAL-CHICKEN', '鸡排能量套餐', 'MEAL', 28.00, 18, 'ENABLED', 140),
+  (15, 'MEAL-SANDWICH', '火腿芝士三明治', 'MEAL', 15.00, 24, 'ENABLED', 150),
+  (16, 'PLAY-CAT-FPS', '猫系陪玩·FPS 枪王 30 分钟', 'PLAYMATE_CAT', 28.00, 12, 'ENABLED', 210),
+  (17, 'PLAY-CAT-MOBA', '猫系陪玩·MOBA 辅助指挥', 'PLAYMATE_CAT', 26.00, 10, 'ENABLED', 220),
+  (18, 'PLAY-CAT-VOICE', '猫系陪玩·温柔语音开黑', 'PLAYMATE_CAT', 24.00, 16, 'ENABLED', 230),
+  (19, 'PLAY-DOG-MOBA', '犬系陪玩·上分冲锋 30 分钟', 'PLAYMATE_DOG', 30.00, 10, 'ENABLED', 240),
+  (20, 'PLAY-DOG-FUN', '犬系陪玩·休闲整活 30 分钟', 'PLAYMATE_DOG', 22.00, 14, 'ENABLED', 250),
+  (21, 'PLAY-DOG-DUNGEON', '犬系陪玩·副本速刷 30 分钟', 'PLAYMATE_DOG', 27.00, 12, 'ENABLED', 260),
+  (22, 'PLAY-REPTILE-STRATEGY', '爬宠系陪玩·策略教学 30 分钟', 'PLAYMATE_REPTILE', 35.00, 8, 'ENABLED', 270),
+  (23, 'PLAY-REPTILE-AIM', '爬宠系陪玩·压枪训练 30 分钟', 'PLAYMATE_REPTILE', 32.00, 8, 'ENABLED', 280),
+  (24, 'PLAY-REPTILE-RANK', '爬宠系陪玩·冷静上分复盘', 'PLAYMATE_REPTILE', 38.00, 6, 'ENABLED', 290)
 ON DUPLICATE KEY UPDATE
-  product_name = VALUES(product_name), category = VALUES(category), price = VALUES(price),
-  status = VALUES(status), sort_order = VALUES(sort_order);
+  product_code = VALUES(product_code),
+  product_name = VALUES(product_name),
+  category = VALUES(category),
+  price = VALUES(price),
+  stock = VALUES(stock),
+  status = VALUES(status),
+  sort_order = VALUES(sort_order);
 
 INSERT INTO device_info
   (id, device_code, area, area_type, room_capacity, hourly_rate_hint,
@@ -645,17 +738,30 @@ VALUES
   (4, 'PC-A04', '大厅A区', 'LOBBY_A', 1, 10.00, 'A04', '192.168.1.104', 'RTX 3060 / 16G', 'FAULT'),
   (5, 'PC-A05', '大厅A区', 'LOBBY_A', 1, 10.00, 'A05', '192.168.1.105', 'RTX 4060 / 32G / 竞技外设', 'IN_USE'),
   (6, 'PC-A06', '大厅A区', 'LOBBY_A', 1, 10.00, 'A06', '192.168.1.106', 'RTX 4060 / 32G / 竞技外设', 'IDLE'),
+  (18, 'PC-A07', '大厅A区', 'LOBBY_A', 1, 10.00, 'A07', '192.168.1.107', 'RTX 3060Ti / 16G / 机械键盘', 'IDLE'),
+  (19, 'PC-A08', '大厅A区', 'LOBBY_A', 1, 10.00, 'A08', '192.168.1.108', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
   (7, 'PC-B01', '大厅B区', 'LOBBY_B', 1, 12.00, 'B01', '192.168.1.121', 'RTX 4070 / 32G / 高刷屏', 'IN_USE'),
   (8, 'PC-B02', '大厅B区', 'LOBBY_B', 1, 12.00, 'B02', '192.168.1.122', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
   (9, 'PC-B03', '大厅B区', 'LOBBY_B', 1, 12.00, 'B03', '192.168.1.123', 'RTX 4070 / 32G / 高刷屏', 'IN_USE'),
+  (20, 'PC-B04', '大厅B区', 'LOBBY_B', 1, 12.00, 'B04', '192.168.1.124', 'RTX 4060 / 32G / 曲面屏', 'IDLE'),
+  (21, 'PC-B05', '大厅B区', 'LOBBY_B', 1, 12.00, 'B05', '192.168.1.125', 'RTX 3060 / 16G / 普通外设', 'FAULT'),
+  (22, 'PC-B06', '大厅B区', 'LOBBY_B', 1, 12.00, 'B06', '192.168.1.126', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
   (10, 'PC-SVIP01', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S01', '192.168.1.151', 'RTX 4080 / 64G / 静音包房', 'IDLE'),
   (11, 'PC-SVIP02', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S02', '192.168.1.152', 'RTX 4080 / 64G / 静音包房', 'IDLE'),
+  (23, 'PC-SVIP03', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S03', '192.168.1.153', 'RTX 4080 / 64G / 降噪耳机', 'IN_USE'),
+  (24, 'PC-SVIP04', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S04', '192.168.1.154', 'RTX 4070Ti / 32G / 静音包房', 'IDLE'),
   (12, 'PC-DUO01', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D01', '192.168.1.161', '双人连坐 / RTX 4070 / 32G', 'IDLE'),
   (13, 'PC-DUO02', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D02', '192.168.1.162', '双人连坐 / RTX 4070 / 32G', 'IDLE'),
+  (25, 'PC-DUO03', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D03', '192.168.1.163', '双人包房 / RTX 4070Ti / 32G', 'IN_USE'),
+  (26, 'PC-DUO04', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D04', '192.168.1.164', '双人包房 / RTX 4060Ti / 32G', 'IDLE'),
   (14, 'PC-QUAD01', '四人包房', 'ROOM_QUAD', 4, 62.00, 'Q01', '192.168.1.171', '四人开黑 / RTX 4070Ti / 32G', 'IDLE'),
   (15, 'PC-QUAD02', '四人包房', 'ROOM_QUAD', 4, 62.00, 'Q02', '192.168.1.172', '四人开黑 / RTX 4070Ti / 32G', 'MAINTENANCE'),
+  (27, 'PC-QUAD03', '四人包房', 'ROOM_QUAD', 4, 62.00, 'Q03', '192.168.1.173', '四人包房 / RTX 4080 / 64G', 'IN_USE'),
+  (28, 'PC-QUAD04', '四人包房', 'ROOM_QUAD', 4, 62.00, 'Q04', '192.168.1.174', '四人包房 / RTX 4070Ti / 32G', 'IDLE'),
   (16, 'PC-FIVE01', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F01', '192.168.1.181', '五人战队房 / RTX 4080 / 64G', 'IDLE'),
-  (17, 'PC-FIVE02', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F02', '192.168.1.182', '五人战队房 / RTX 4080 / 64G', 'IDLE')
+  (17, 'PC-FIVE02', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F02', '192.168.1.182', '五人战队房 / RTX 4080 / 64G', 'IDLE'),
+  (29, 'PC-FIVE03', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F03', '192.168.1.183', '五人战队房 / RTX 4090 / 64G', 'IN_USE'),
+  (30, 'PC-FIVE04', '五人包房', 'ROOM_FIVE', 5, 78.00, 'F04', '192.168.1.184', '五人战队房 / RTX 4080 / 64G', 'IDLE')
 ON DUPLICATE KEY UPDATE
   device_code = VALUES(device_code),
   area = VALUES(area),
@@ -664,28 +770,178 @@ ON DUPLICATE KEY UPDATE
   hourly_rate_hint = VALUES(hourly_rate_hint),
   seat_no = VALUES(seat_no),
   ip_address = VALUES(ip_address),
-  config_desc = VALUES(config_desc);
+  config_desc = VALUES(config_desc),
+  status = VALUES(status),
+  deleted = 0;
 
-INSERT IGNORE INTO machine_session (id, session_no, member_id, device_id, billing_rule_id, start_at, end_at, duration_minutes, estimated_amount, final_amount, status, operator_id, settled_by) VALUES
-  (1, 'S202608310001', 1, 1, 1, '2026-08-31 08:10:00', NULL, NULL, 12.70, NULL, 'RUNNING', 3, NULL),
-  (2, 'S202608310002', 2, 5, 1, '2026-08-31 07:42:00', NULL, NULL, 17.40, NULL, 'RUNNING', 3, NULL),
-  (3, 'S202608300012', 4, 8, 1, '2026-08-30 19:00:00', '2026-08-30 21:18:00', 138, 23.00, 23.00, 'ENDED', 3, 3);
+INSERT INTO machine_session
+  (id, session_no, member_id, device_id, billing_rule_id, start_at, end_at,
+   duration_minutes, estimated_amount, final_amount, status, operator_id, settled_by)
+VALUES
+  (1, 'S202609020001', 1, 1, 1, '2026-09-02 18:20:00', NULL, NULL, 16.50, NULL, 'RUNNING', 3, NULL),
+  (2, 'S202609020002', 2, 5, 1, '2026-09-02 17:45:00', NULL, NULL, 22.00, NULL, 'RUNNING', 3, NULL),
+  (3, 'S202609010012', 4, 8, 1, '2026-09-01 19:00:00', '2026-09-01 21:18:00', 138, 23.00, 23.00, 'ENDED', 3, 3),
+  (4, 'S202609020003', 5, 7, 1, '2026-09-02 19:10:00', NULL, NULL, 12.00, NULL, 'RUNNING', 3, NULL),
+  (5, 'S202609020004', 6, 25, 5, '2026-09-02 20:15:00', NULL, NULL, 36.00, NULL, 'RUNNING', 3, NULL),
+  (6, 'S202609020005', 8, 27, 6, '2026-09-02 20:05:00', NULL, NULL, 62.00, NULL, 'RUNNING', 3, NULL),
+  (7, 'S202609020006', 10, 29, 7, '2026-09-02 19:40:00', NULL, NULL, 78.00, NULL, 'RUNNING', 3, NULL),
+  (8, 'S202609010013', 6, 23, 4, '2026-09-01 22:00:00', '2026-09-02 01:30:00', 210, 77.00, 77.00, 'ENDED', 3, 3),
+  (9, 'S202608250011', 8, 13, 5, '2026-08-25 20:20:00', '2026-08-25 23:20:00', 180, 108.00, 108.00, 'ENDED', 3, 3),
+  (10, 'S202608240009', 9, 19, 1, '2026-08-24 09:00:00', '2026-08-24 13:00:00', 240, 40.00, 40.00, 'ENDED', 3, 3)
+ON DUPLICATE KEY UPDATE
+  member_id = VALUES(member_id),
+  device_id = VALUES(device_id),
+  billing_rule_id = VALUES(billing_rule_id),
+  start_at = VALUES(start_at),
+  end_at = VALUES(end_at),
+  duration_minutes = VALUES(duration_minutes),
+  estimated_amount = VALUES(estimated_amount),
+  final_amount = VALUES(final_amount),
+  status = VALUES(status),
+  operator_id = VALUES(operator_id),
+  settled_by = VALUES(settled_by);
 
-INSERT IGNORE INTO recharge_record (id, recharge_no, member_id, amount, gift_amount, pay_method, operator_id, remark, created_at) VALUES
-  (1, 'R202608310001', 1, 100.00, 0.00, 'CASH', 3, '演示充值', '2026-08-31 08:00:00'),
-  (2, 'R202608310002', 2, 60.00, 0.00, 'WECHAT', 3, '演示充值', '2026-08-31 08:05:00'),
-  (3, 'R202608300001', 4, 120.00, 0.00, 'ALIPAY', 3, '演示充值', '2026-08-30 18:30:00');
+INSERT INTO recharge_record (id, recharge_no, member_id, amount, gift_amount, pay_method, operator_id, remark, created_at) VALUES
+  (1, 'R202609020001', 1, 120.00, 10.00, 'CASH', 3, '晚间上机充值', '2026-09-02 18:00:00'),
+  (2, 'R202609020002', 2, 200.00, 20.00, 'WECHAT', 3, 'VIP 会员续充', '2026-09-02 17:30:00'),
+  (3, 'R202609010001', 4, 300.00, 30.00, 'ALIPAY', 3, '包房用户充值', '2026-09-01 18:30:00'),
+  (4, 'R202609020003', 5, 180.00, 0.00, 'WECHAT', 3, '开黑前充值', '2026-09-02 18:55:00'),
+  (5, 'R202609020004', 6, 500.00, 50.00, 'ALIPAY', 3, '战队训练充值', '2026-09-02 20:00:00'),
+  (6, 'R202608120001', 7, 80.00, 0.00, 'CASH', 3, '低频会员充值', '2026-08-12 15:00:00'),
+  (7, 'R202608250001', 8, 260.00, 20.00, 'WECHAT', 3, '周末组队充值', '2026-08-25 20:00:00'),
+  (8, 'R202608240001', 9, 120.00, 0.00, 'CASH', 3, '上午刷本充值', '2026-08-24 08:50:00'),
+  (9, 'R202609020005', 10, 800.00, 100.00, 'ALIPAY', 3, '五人房包夜充值', '2026-09-02 19:20:00'),
+  (10, 'R202609010002', 1, 60.00, 0.00, 'WECHAT', 3, '饮品点单前充值', '2026-09-01 12:10:00')
+ON DUPLICATE KEY UPDATE
+  amount = VALUES(amount),
+  gift_amount = VALUES(gift_amount),
+  pay_method = VALUES(pay_method),
+  operator_id = VALUES(operator_id),
+  remark = VALUES(remark),
+  created_at = VALUES(created_at);
 
-INSERT IGNORE INTO consume_record (id, consume_no, member_id, session_id, consume_type, amount, balance_after, operator_id, created_at) VALUES
-  (1, 'C202608300001', 4, 3, 'MACHINE', 23.00, 97.00, 3, '2026-08-30 21:18:00'),
-  (2, 'C202608310001', 1, 1, 'MACHINE', 42.70, 57.30, 3, '2026-08-31 09:20:00'),
-  (3, 'C202608310002', 2, 2, 'MACHINE', 53.50, 6.50, 3, '2026-08-31 09:21:00');
+INSERT INTO consume_record (id, consume_no, member_id, session_id, consume_type, amount, balance_after, operator_id, created_at) VALUES
+  (1, 'C202609010001', 4, 3, 'MACHINE', 23.00, 337.00, 3, '2026-09-01 21:18:00'),
+  (2, 'C202609020001', 1, 1, 'MACHINE', 16.50, 103.50, 3, '2026-09-02 19:50:00'),
+  (3, 'C202609020002', 2, 2, 'MACHINE', 22.00, 198.00, 3, '2026-09-02 19:55:00'),
+  (4, 'C202609020003', 1, NULL, 'SHOP', 33.00, 86.30, 5, '2026-09-02 19:05:00'),
+  (5, 'C202609020004', 2, NULL, 'SHOP', 45.00, 153.00, 5, '2026-09-02 19:10:00'),
+  (6, 'C202609020005', 5, NULL, 'SHOP', 34.00, 146.00, 5, '2026-09-02 19:30:00'),
+  (7, 'C202609020006', 6, 5, 'MACHINE', 36.00, 514.00, 3, '2026-09-02 20:45:00'),
+  (8, 'C202609020007', 6, NULL, 'SHOP', 72.00, 442.00, 5, '2026-09-02 20:50:00'),
+  (9, 'C202608250001', 8, 9, 'MACHINE', 108.00, 172.00, 3, '2026-08-25 23:20:00'),
+  (10, 'C202608240001', 9, 10, 'MACHINE', 40.00, 80.00, 3, '2026-08-24 13:00:00'),
+  (11, 'C202609020008', 10, 7, 'MACHINE', 78.00, 742.00, 3, '2026-09-02 20:55:00'),
+  (12, 'C202609020009', 10, NULL, 'SHOP', 90.00, 652.00, 5, '2026-09-02 21:00:00')
+ON DUPLICATE KEY UPDATE
+  member_id = VALUES(member_id),
+  session_id = VALUES(session_id),
+  consume_type = VALUES(consume_type),
+  amount = VALUES(amount),
+  balance_after = VALUES(balance_after),
+  operator_id = VALUES(operator_id),
+  created_at = VALUES(created_at);
 
-INSERT IGNORE INTO member_account_flow (id, flow_no, member_id, related_id, related_type, change_amount, balance_before, balance_after, operator_id, remark, created_at) VALUES
-  (1, 'F202608310001', 1, 1, 'RECHARGE', 100.00, 0.00, 100.00, 3, '会员充值', '2026-08-31 08:00:00'),
-  (2, 'F202608310002', 1, 2, 'CONSUME', -42.70, 100.00, 57.30, 3, '上机消费', '2026-08-31 09:20:00'),
-  (3, 'F202608310003', 2, 2, 'RECHARGE', 60.00, 0.00, 60.00, 3, '会员充值', '2026-08-31 08:05:00'),
-  (4, 'F202608310004', 2, 3, 'CONSUME', -53.50, 60.00, 6.50, 3, '上机消费', '2026-08-31 09:21:00');
+INSERT INTO member_account_flow
+  (id, flow_no, member_id, related_id, related_type, change_amount, balance_before,
+   balance_after, operator_id, remark, created_at)
+VALUES
+  (1, 'F202609020001', 1, 1, 'RECHARGE', 130.00, 0.00, 130.00, 3, '晚间上机充值', '2026-09-02 18:00:00'),
+  (2, 'F202609020002', 1, 4, 'PURCHASE', -33.00, 119.30, 86.30, 5, '猫系陪玩和饮品订单', '2026-09-02 19:05:00'),
+  (3, 'F202609020003', 2, 2, 'RECHARGE', 220.00, 0.00, 220.00, 3, 'VIP 会员续充', '2026-09-02 17:30:00'),
+  (4, 'F202609020004', 2, 5, 'PURCHASE', -45.00, 198.00, 153.00, 5, '简餐和饮品订单', '2026-09-02 19:10:00'),
+  (5, 'F202609020005', 5, 4, 'RECHARGE', 180.00, 0.00, 180.00, 3, '开黑前充值', '2026-09-02 18:55:00'),
+  (6, 'F202609020006', 5, 6, 'PURCHASE', -34.00, 180.00, 146.00, 5, '零食和犬系陪玩订单', '2026-09-02 19:30:00'),
+  (7, 'F202609020007', 6, 5, 'RECHARGE', 550.00, 0.00, 550.00, 3, '战队训练充值', '2026-09-02 20:00:00'),
+  (8, 'F202609020008', 6, 8, 'PURCHASE', -72.00, 514.00, 442.00, 5, '五人房陪练组合订单', '2026-09-02 20:50:00'),
+  (9, 'F202608250001', 8, 7, 'RECHARGE', 280.00, 0.00, 280.00, 3, '周末组队充值', '2026-08-25 20:00:00'),
+  (10, 'F202608250002', 8, 9, 'CONSUME', -108.00, 280.00, 172.00, 3, '双人包房上机消费', '2026-08-25 23:20:00'),
+  (11, 'F202609020009', 10, 9, 'RECHARGE', 900.00, 0.00, 900.00, 3, '五人房包夜充值', '2026-09-02 19:20:00'),
+  (12, 'F202609020010', 10, 12, 'PURCHASE', -90.00, 742.00, 652.00, 5, '战队包房点单和陪玩', '2026-09-02 21:00:00')
+ON DUPLICATE KEY UPDATE
+  member_id = VALUES(member_id),
+  related_id = VALUES(related_id),
+  related_type = VALUES(related_type),
+  change_amount = VALUES(change_amount),
+  balance_before = VALUES(balance_before),
+  balance_after = VALUES(balance_after),
+  operator_id = VALUES(operator_id),
+  remark = VALUES(remark),
+  created_at = VALUES(created_at);
+
+INSERT INTO service_call
+  (id, call_no, member_id, device_id, call_type, message, status, handled_by, handled_at, created_at)
+VALUES
+  (1, 'SC202609020001', 1, 1, 'FRONT_DESK', '想确认猫系陪玩还需要等多久。', 'PENDING', NULL, NULL, '2026-09-02 20:45:00'),
+  (2, 'SC202609020002', 2, 5, 'SUPPLIES', '需要补一包纸巾和一次性耳机套。', 'PROCESSING', 3, NULL, '2026-09-02 20:38:00'),
+  (3, 'SC202609020003', 5, 7, 'CLEANING', '桌面有饮料水渍，请帮忙清洁。', 'COMPLETED', 3, '2026-09-02 20:25:00', '2026-09-02 20:10:00'),
+  (4, 'SC202609020004', 6, 25, 'DEVICE_HELP', '鼠标侧键无法触发宏，请协助检查。', 'PENDING', NULL, NULL, '2026-09-02 20:55:00'),
+  (5, 'SC202608250001', 8, 13, 'FRONT_DESK', '双人包房想续费一小时。', 'COMPLETED', 3, '2026-08-25 22:15:00', '2026-08-25 22:05:00'),
+  (6, 'SC202609020005', 10, 29, 'SUPPLIES', '五人房需要补充水和纸巾。', 'PROCESSING', 3, NULL, '2026-09-02 20:58:00')
+ON DUPLICATE KEY UPDATE
+  member_id = VALUES(member_id),
+  device_id = VALUES(device_id),
+  call_type = VALUES(call_type),
+  message = VALUES(message),
+  status = VALUES(status),
+  handled_by = VALUES(handled_by),
+  handled_at = VALUES(handled_at),
+  created_at = VALUES(created_at);
+
+INSERT INTO shop_order
+  (id, order_no, member_id, device_id, total_amount, status, remark, handled_by, paid_at, completed_at, created_at)
+VALUES
+  (1, 'O202609020001', 1, 1, 33.00, 'PENDING', '猫系陪玩优先 FPS，饮料少冰。', NULL, '2026-09-02 19:05:00', NULL, '2026-09-02 19:05:00'),
+  (2, 'O202609020002', 2, 5, 45.00, 'PREPARING', '黑椒鸡排饭不要辣，咖啡常温。', 3, '2026-09-02 19:10:00', NULL, '2026-09-02 19:10:00'),
+  (3, 'O202609020003', 5, 7, 34.00, 'DELIVERING', '犬系陪玩休闲整活，顺带一瓶冻柠茶。', 3, '2026-09-02 19:30:00', NULL, '2026-09-02 19:30:00'),
+  (4, 'O202609020004', 6, 25, 72.00, 'PENDING', '五排需要猫系 FPS 和爬宠系复盘各一份。', NULL, '2026-09-02 20:50:00', NULL, '2026-09-02 20:50:00'),
+  (5, 'O202609020005', 10, 29, 90.00, 'PREPARING', '战队房补给，陪玩要求冷静指挥。', 3, '2026-09-02 21:00:00', NULL, '2026-09-02 21:00:00'),
+  (6, 'O202608250001', 8, 13, 37.00, 'COMPLETED', '双人包房周末套餐补给。', 3, '2026-08-25 22:05:00', '2026-08-25 22:20:00', '2026-08-25 22:05:00'),
+  (7, 'O202608240001', 9, 19, 26.00, 'COMPLETED', '上午刷本简餐。', 3, '2026-08-24 11:00:00', '2026-08-24 11:15:00', '2026-08-24 11:00:00'),
+  (8, 'O202609020006', 4, 8, 67.00, 'CANCELLED', '临时取消陪玩服务。', 3, '2026-09-02 18:20:00', NULL, '2026-09-02 18:20:00')
+ON DUPLICATE KEY UPDATE
+  member_id = VALUES(member_id),
+  device_id = VALUES(device_id),
+  total_amount = VALUES(total_amount),
+  status = VALUES(status),
+  remark = VALUES(remark),
+  handled_by = VALUES(handled_by),
+  paid_at = VALUES(paid_at),
+  completed_at = VALUES(completed_at),
+  created_at = VALUES(created_at);
+
+INSERT INTO shop_order_item
+  (id, order_id, product_id, product_name, unit_price, quantity, subtotal)
+VALUES
+  (1, 1, 16, '猫系陪玩·FPS 枪王 30 分钟', 28.00, 1, 28.00),
+  (2, 1, 1, '冰镇可乐', 5.00, 1, 5.00),
+  (3, 2, 13, '黑椒鸡排饭', 22.00, 1, 22.00),
+  (4, 2, 3, '罐装咖啡', 8.00, 1, 8.00),
+  (5, 2, 15, '火腿芝士三明治', 15.00, 1, 15.00),
+  (6, 3, 20, '犬系陪玩·休闲整活 30 分钟', 22.00, 1, 22.00),
+  (7, 3, 5, '冻柠茶', 7.00, 1, 7.00),
+  (8, 3, 1, '冰镇可乐', 5.00, 1, 5.00),
+  (9, 4, 16, '猫系陪玩·FPS 枪王 30 分钟', 28.00, 1, 28.00),
+  (10, 4, 24, '爬宠系陪玩·冷静上分复盘', 38.00, 1, 38.00),
+  (11, 4, 6, '矿泉水', 3.00, 2, 6.00),
+  (12, 5, 24, '爬宠系陪玩·冷静上分复盘', 38.00, 1, 38.00),
+  (13, 5, 14, '鸡排能量套餐', 28.00, 1, 28.00),
+  (14, 5, 4, '能量饮料', 9.00, 2, 18.00),
+  (15, 5, 8, '烤肠', 6.00, 1, 6.00),
+  (16, 6, 19, '犬系陪玩·上分冲锋 30 分钟', 30.00, 1, 30.00),
+  (17, 6, 7, '薯片', 7.00, 1, 7.00),
+  (18, 7, 12, '香辣牛肉面', 12.00, 1, 12.00),
+  (19, 7, 2, '冰红茶', 5.00, 2, 10.00),
+  (20, 7, 10, '香辣条', 4.00, 1, 4.00),
+  (21, 8, 22, '爬宠系陪玩·策略教学 30 分钟', 35.00, 1, 35.00),
+  (22, 8, 23, '爬宠系陪玩·压枪训练 30 分钟', 32.00, 1, 32.00)
+ON DUPLICATE KEY UPDATE
+  order_id = VALUES(order_id),
+  product_id = VALUES(product_id),
+  product_name = VALUES(product_name),
+  unit_price = VALUES(unit_price),
+  quantity = VALUES(quantity),
+  subtotal = VALUES(subtotal);
 
 DELETE FROM face_profile
 WHERE feature_ref IN ('features/member-1.bin', 'features/member-2.bin');
@@ -695,12 +951,36 @@ JOIN sys_user u ON u.member_id = fp.member_id AND u.deleted = 0
 SET fp.sys_user_id = u.id
 WHERE fp.sys_user_id IS NULL;
 
-INSERT IGNORE INTO device_fault (id, device_id, fault_type, description, status, reported_by, reported_at) VALUES
-  (1, 4, 'USER_REPORT', '耳机左声道无声音，请协助检查。', 'OPEN', 5, '2026-08-31 09:30:00');
+INSERT INTO device_fault (id, device_id, fault_type, description, status, reported_by, reported_at) VALUES
+  (1, 4, 'USER_REPORT', '耳机左声道无声音，请协助检查。', 'OPEN', 5, '2026-09-02 19:30:00'),
+  (2, 21, 'HARDWARE', 'B05 鼠标滚轮回弹异常，需要更换鼠标。', 'OPEN', 3, '2026-09-02 18:40:00'),
+  (3, 15, 'MAINTENANCE', '四人包房 Q02 做显卡驱动和系统镜像维护。', 'PROCESSING', 3, '2026-09-02 17:20:00'),
+  (4, 3, 'PERIPHERAL', 'A03 键盘 W 键偶发失灵，已登记待备件。', 'PROCESSING', 3, '2026-09-01 22:10:00'),
+  (5, 10, 'NETWORK', '单人豪华包房 S01 网络延迟波动，已完成网线重插。', 'RESOLVED', 3, '2026-09-01 16:00:00')
+ON DUPLICATE KEY UPDATE
+  device_id = VALUES(device_id),
+  fault_type = VALUES(fault_type),
+  description = VALUES(description),
+  status = VALUES(status),
+  reported_by = VALUES(reported_by),
+  reported_at = VALUES(reported_at);
 
-INSERT IGNORE INTO client_device (id, device_id, device_code, client_token, app_version, online_status, last_heartbeat_at) VALUES
-  (1, 1, 'PC-A01', 'dev-token-pc-a01', '0.1.0', 'ONLINE', '2026-08-31 09:20:00'),
-  (2, 2, 'PC-A02', 'dev-token-pc-a02', '0.1.0', 'OFFLINE', NULL);
+INSERT INTO client_device (id, device_id, device_code, client_token, app_version, online_status, last_heartbeat_at) VALUES
+  (1, 1, 'PC-A01', 'dev-token-pc-a01', '0.2.0', 'ONLINE', '2026-09-02 20:58:00'),
+  (2, 2, 'PC-A02', 'dev-token-pc-a02', '0.2.0', 'OFFLINE', NULL),
+  (3, 5, 'PC-A05', 'dev-token-pc-a05', '0.2.0', 'ONLINE', '2026-09-02 20:58:00'),
+  (4, 7, 'PC-B01', 'dev-token-pc-b01', '0.2.0', 'ONLINE', '2026-09-02 20:58:00'),
+  (5, 23, 'PC-SVIP03', 'dev-token-pc-svip03', '0.2.0', 'ONLINE', '2026-09-02 20:58:00'),
+  (6, 25, 'PC-DUO03', 'dev-token-pc-duo03', '0.2.0', 'ONLINE', '2026-09-02 20:58:00'),
+  (7, 27, 'PC-QUAD03', 'dev-token-pc-quad03', '0.2.0', 'ONLINE', '2026-09-02 20:58:00'),
+  (8, 29, 'PC-FIVE03', 'dev-token-pc-five03', '0.2.0', 'ONLINE', '2026-09-02 20:58:00')
+ON DUPLICATE KEY UPDATE
+  device_id = VALUES(device_id),
+  device_code = VALUES(device_code),
+  client_token = VALUES(client_token),
+  app_version = VALUES(app_version),
+  online_status = VALUES(online_status),
+  last_heartbeat_at = VALUES(last_heartbeat_at);
 
 DROP VIEW IF EXISTS v_dashboard_summary;
 
