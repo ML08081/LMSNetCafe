@@ -429,6 +429,12 @@ CREATE TABLE IF NOT EXISTS shop_product (
   product_code VARCHAR(32) NOT NULL,
   product_name VARCHAR(64) NOT NULL,
   category VARCHAR(32) NOT NULL,
+  product_type VARCHAR(32) NOT NULL DEFAULT 'MERCHANDISE',
+  pet_species VARCHAR(32),
+  pet_breed VARCHAR(64),
+  expert_role VARCHAR(64),
+  service_duration_minutes INT,
+  description VARCHAR(255),
   price DECIMAL(10,2) NOT NULL,
   stock INT NOT NULL DEFAULT 0,
   status VARCHAR(20) NOT NULL DEFAULT 'ENABLED',
@@ -438,6 +444,96 @@ CREATE TABLE IF NOT EXISTS shop_product (
   UNIQUE KEY uk_shop_product_code (product_code),
   KEY idx_shop_product_category_status (category, status)
 );
+
+SET @shop_product_type_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'shop_product'
+    AND COLUMN_NAME = 'product_type'
+);
+SET @add_shop_product_type_sql = IF(
+  @shop_product_type_column_exists = 0,
+  'ALTER TABLE shop_product ADD COLUMN product_type VARCHAR(32) NOT NULL DEFAULT ''MERCHANDISE'' AFTER category',
+  'SELECT 1'
+);
+PREPARE add_shop_product_type_statement FROM @add_shop_product_type_sql;
+EXECUTE add_shop_product_type_statement;
+DEALLOCATE PREPARE add_shop_product_type_statement;
+
+SET @shop_pet_species_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'shop_product'
+    AND COLUMN_NAME = 'pet_species'
+);
+SET @add_shop_pet_species_sql = IF(
+  @shop_pet_species_column_exists = 0,
+  'ALTER TABLE shop_product ADD COLUMN pet_species VARCHAR(32) NULL AFTER product_type',
+  'SELECT 1'
+);
+PREPARE add_shop_pet_species_statement FROM @add_shop_pet_species_sql;
+EXECUTE add_shop_pet_species_statement;
+DEALLOCATE PREPARE add_shop_pet_species_statement;
+
+SET @shop_pet_breed_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'shop_product'
+    AND COLUMN_NAME = 'pet_breed'
+);
+SET @add_shop_pet_breed_sql = IF(
+  @shop_pet_breed_column_exists = 0,
+  'ALTER TABLE shop_product ADD COLUMN pet_breed VARCHAR(64) NULL AFTER pet_species',
+  'SELECT 1'
+);
+PREPARE add_shop_pet_breed_statement FROM @add_shop_pet_breed_sql;
+EXECUTE add_shop_pet_breed_statement;
+DEALLOCATE PREPARE add_shop_pet_breed_statement;
+
+SET @shop_expert_role_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'shop_product'
+    AND COLUMN_NAME = 'expert_role'
+);
+SET @add_shop_expert_role_sql = IF(
+  @shop_expert_role_column_exists = 0,
+  'ALTER TABLE shop_product ADD COLUMN expert_role VARCHAR(64) NULL AFTER pet_breed',
+  'SELECT 1'
+);
+PREPARE add_shop_expert_role_statement FROM @add_shop_expert_role_sql;
+EXECUTE add_shop_expert_role_statement;
+DEALLOCATE PREPARE add_shop_expert_role_statement;
+
+SET @shop_duration_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'shop_product'
+    AND COLUMN_NAME = 'service_duration_minutes'
+);
+SET @add_shop_duration_sql = IF(
+  @shop_duration_column_exists = 0,
+  'ALTER TABLE shop_product ADD COLUMN service_duration_minutes INT NULL AFTER expert_role',
+  'SELECT 1'
+);
+PREPARE add_shop_duration_statement FROM @add_shop_duration_sql;
+EXECUTE add_shop_duration_statement;
+DEALLOCATE PREPARE add_shop_duration_statement;
+
+SET @shop_description_column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'shop_product'
+    AND COLUMN_NAME = 'description'
+);
+SET @add_shop_description_sql = IF(
+  @shop_description_column_exists = 0,
+  'ALTER TABLE shop_product ADD COLUMN description VARCHAR(255) NULL AFTER service_duration_minutes',
+  'SELECT 1'
+);
+PREPARE add_shop_description_statement FROM @add_shop_description_sql;
+EXECUTE add_shop_description_statement;
+DEALLOCATE PREPARE add_shop_description_statement;
 
 CREATE TABLE IF NOT EXISTS shop_order (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -549,7 +645,8 @@ INSERT IGNORE INTO sys_permission (id, permission_code, permission_name, permiss
   (15, 'portal:support', '故障反馈', 'MENU', '/portal/support', 150),
   (16, 'device:view', '设备监控', 'API', '/devices', 45),
   (17, 'portal:services', '呼叫与点餐', 'MENU', '/portal/services', 145),
-  (18, 'service:manage', '服务与订单', 'MENU', '/service-desk', 75);
+  (18, 'service:manage', '服务与订单', 'MENU', '/service-desk', 75),
+  (19, 'product:manage', '商品管理', 'MENU', '/products', 65);
 
 INSERT INTO sys_role_permission (role_id, permission_id)
 SELECT 1, id FROM sys_permission WHERE id NOT BETWEEN 11 AND 17;
@@ -591,12 +688,12 @@ INSERT INTO member_account (id, member_id, balance, total_recharge, total_consum
   (2, 2, 28.50, 260.00, 231.50),
   (3, 3, 0.00, 0.00, 0.00),
   (4, 4, 188.00, 360.00, 172.00),
-  (5, 5, 122.00, 220.00, 98.00),
-  (6, 6, 310.00, 600.00, 290.00),
+  (5, 5, 118.00, 220.00, 102.00),
+  (6, 6, 299.00, 600.00, 301.00),
   (7, 7, 16.00, 80.00, 64.00),
   (8, 8, 76.00, 300.00, 224.00),
   (9, 9, 45.00, 120.00, 75.00),
-  (10, 10, 520.00, 1000.00, 480.00)
+  (10, 10, 508.00, 1000.00, 492.00)
 ON DUPLICATE KEY UPDATE
   balance = VALUES(balance),
   total_recharge = VALUES(total_recharge),
@@ -618,25 +715,25 @@ VALUES
    '超过 14 天未到店，建议推送包夜代金券'),
   (4, '永劫无间、黑神话、主机游戏', '周末 18:00-24:00', '黑椒鸡排饭、每日坚果',
    'HIGH', 'LOW', '高价值包房用户', '2026-09-01 20:00:00', '2026-09-01 20:40:00',
-   '推荐四人包房套餐和陪玩服务'),
+   '推荐四人包房套餐、布偶猫宠物陪伴和真人高手陪玩'),
   (5, '云顶之弈、Steam 合作游戏、派对游戏', '晚间 18:00-22:00', '柠檬茶、薯片',
    'MEDIUM', 'LOW', '轻社交开黑用户', '2026-09-02 19:10:00', '2026-09-02 19:25:00',
    '推荐双人包房和轻食组合券'),
   (6, '瓦罗兰特、CS2、Apex Legends', '深夜 22:00-03:00', '能量饮料、罐装咖啡',
    'HIGH', 'LOW', '竞技上分用户', '2026-09-02 21:00:00', '2026-09-02 21:05:00',
-   '推荐五人包房、猫系陪玩和战队训练套餐'),
+   '推荐五人包房、FPS 高手陪玩和宠物陪伴组合套餐'),
   (7, '影视追剧、模拟经营、休闲小游戏', '下午 13:00-17:00', '矿泉水、巧克力',
    'LOW', 'HIGH', '低频休闲用户', '2026-08-12 15:20:00', NULL,
    '超过 14 天未到店，建议推送下午场上机券'),
   (8, '英雄联盟、永劫无间、派对游戏', '周末 20:00-02:00', '烤肠、能量饮料',
    'MEDIUM', 'MEDIUM', '周末组队用户', '2026-08-25 22:10:00', '2026-08-25 23:05:00',
-   '推荐周末四人包房券和犬系陪玩'),
+   '推荐周末四人包房券和犬类宠物陪伴'),
   (9, '地下城与勇士、魔兽世界、刷本搬砖', '上午 09:00-13:00', '冰红茶、香辣牛肉面',
    'MEDIUM', 'MEDIUM', '长时段刷本用户', '2026-08-24 10:30:00', '2026-08-24 11:00:00',
    '推荐上午连充时长包和简餐折扣'),
   (10, '无畏契约、CS2、战队训练赛', '晚间 19:00-01:00', '黑椒鸡排饭、罐装咖啡',
    'HIGH', 'LOW', '高价值战队用户', '2026-09-02 20:30:00', '2026-09-02 20:45:00',
-   '推荐五人战队房、包夜套餐和陪练组合')
+   '推荐五人战队房、包夜套餐和真人高手陪玩组合')
 ON DUPLICATE KEY UPDATE
   favorite_games = VALUES(favorite_games),
   preferred_time_slot = VALUES(preferred_time_slot),
@@ -658,15 +755,15 @@ VALUES
    'UNUSED', '休闲追剧用户偏好饮品', '2026-09-30 23:59:59'),
   (3, 'CP202609020003', 4, 'ROOM_PACKAGE', '包房用户加时券', 20.00, NULL, 80.00,
    'UNUSED', '高价值包房用户运营', '2026-10-02 23:59:59'),
-  (4, 'CP202609020004', 1, 'PLAYMATE_DISCOUNT', '猫系陪玩新人券', 8.00, NULL, 25.00,
-   'UNUSED', '游戏发烧友偏好陪玩服务', '2026-09-25 23:59:59'),
+  (4, 'CP202609020004', 1, 'PET_COMPANION', '狸花猫宠物陪伴新人券', 8.00, NULL, 25.00,
+   'UNUSED', '游戏发烧友偏好轻互动陪伴', '2026-09-25 23:59:59'),
   (5, 'CP202609020005', 1, 'DRINK_DISCOUNT', '竞技饮品加购券', 4.00, NULL, 12.00,
    'UNUSED', '晚间高频上机用户饮品偏好', '2026-09-20 23:59:59'),
   (6, 'CP202609020006', 6, 'ROOM_PACKAGE', '五人战队房满减券', 30.00, NULL, 150.00,
    'UNUSED', '高价值战队用户运营', '2026-10-08 23:59:59'),
   (7, 'CP202609020007', 7, 'MACHINE_VOUCHER', '下午场召回券', 12.00, NULL, 25.00,
    'UNUSED', '低频休闲用户流失预警', '2026-09-28 23:59:59'),
-  (8, 'CP202609020008', 8, 'PLAYMATE_DISCOUNT', '犬系陪玩体验券', 10.00, NULL, 30.00,
+  (8, 'CP202609020008', 8, 'PET_COMPANION', '犬类宠物陪伴体验券', 10.00, NULL, 30.00,
    'UNUSED', '周末组队用户推荐', '2026-10-05 23:59:59'),
   (9, 'CP202609020009', 9, 'MEAL_DISCOUNT', '上午简餐补给券', 6.00, NULL, 20.00,
    'UNUSED', '长时段刷本用户餐食偏好', '2026-09-26 23:59:59'),
@@ -694,35 +791,48 @@ INSERT INTO member_pet_setting (member_id, enabled, always_on_top, show_bubble) 
   (10, 1, 1, 1)
 ON DUPLICATE KEY UPDATE member_id = VALUES(member_id);
 
-INSERT INTO shop_product (id, product_code, product_name, category, price, stock, status, sort_order) VALUES
-  (1, 'DRINK-COLA', '冰镇可乐', 'DRINK', 5.00, 80, 'ENABLED', 10),
-  (2, 'DRINK-TEA', '冰红茶', 'DRINK', 5.00, 60, 'ENABLED', 20),
-  (3, 'DRINK-COFFEE', '罐装咖啡', 'DRINK', 8.00, 40, 'ENABLED', 30),
-  (4, 'DRINK-ENERGY', '能量饮料', 'DRINK', 9.00, 55, 'ENABLED', 40),
-  (5, 'DRINK-LEMON', '冻柠茶', 'DRINK', 7.00, 45, 'ENABLED', 50),
-  (6, 'DRINK-WATER', '矿泉水', 'DRINK', 3.00, 100, 'ENABLED', 60),
-  (7, 'SNACK-CHIPS', '薯片', 'SNACK', 7.00, 50, 'ENABLED', 70),
-  (8, 'SNACK-SAUSAGE', '烤肠', 'SNACK', 6.00, 45, 'ENABLED', 80),
-  (9, 'SNACK-NUTS', '每日坚果', 'SNACK', 10.00, 35, 'ENABLED', 90),
-  (10, 'SNACK-LATIAO', '香辣条', 'SNACK', 4.00, 70, 'ENABLED', 100),
-  (11, 'SNACK-CHOCO', '巧克力棒', 'SNACK', 6.00, 42, 'ENABLED', 110),
-  (12, 'MEAL-NOODLES', '香辣牛肉面', 'MEAL', 12.00, 30, 'ENABLED', 120),
-  (13, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 22.00, 25, 'ENABLED', 130),
-  (14, 'MEAL-CHICKEN', '鸡排能量套餐', 'MEAL', 28.00, 18, 'ENABLED', 140),
-  (15, 'MEAL-SANDWICH', '火腿芝士三明治', 'MEAL', 15.00, 24, 'ENABLED', 150),
-  (16, 'PLAY-CAT-FPS', '猫系陪玩·FPS 枪王 30 分钟', 'PLAYMATE_CAT', 28.00, 12, 'ENABLED', 210),
-  (17, 'PLAY-CAT-MOBA', '猫系陪玩·MOBA 辅助指挥', 'PLAYMATE_CAT', 26.00, 10, 'ENABLED', 220),
-  (18, 'PLAY-CAT-VOICE', '猫系陪玩·温柔语音开黑', 'PLAYMATE_CAT', 24.00, 16, 'ENABLED', 230),
-  (19, 'PLAY-DOG-MOBA', '犬系陪玩·上分冲锋 30 分钟', 'PLAYMATE_DOG', 30.00, 10, 'ENABLED', 240),
-  (20, 'PLAY-DOG-FUN', '犬系陪玩·休闲整活 30 分钟', 'PLAYMATE_DOG', 22.00, 14, 'ENABLED', 250),
-  (21, 'PLAY-DOG-DUNGEON', '犬系陪玩·副本速刷 30 分钟', 'PLAYMATE_DOG', 27.00, 12, 'ENABLED', 260),
-  (22, 'PLAY-REPTILE-STRATEGY', '爬宠系陪玩·策略教学 30 分钟', 'PLAYMATE_REPTILE', 35.00, 8, 'ENABLED', 270),
-  (23, 'PLAY-REPTILE-AIM', '爬宠系陪玩·压枪训练 30 分钟', 'PLAYMATE_REPTILE', 32.00, 8, 'ENABLED', 280),
-  (24, 'PLAY-REPTILE-RANK', '爬宠系陪玩·冷静上分复盘', 'PLAYMATE_REPTILE', 38.00, 6, 'ENABLED', 290)
+INSERT INTO shop_product
+  (id, product_code, product_name, category, product_type, pet_species, pet_breed,
+   expert_role, service_duration_minutes, description, price, stock, status, sort_order)
+VALUES
+  (1, 'DRINK-COLA', '冰镇可乐', 'DRINK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '冰柜常备饮品，可配送到机位。', 5.00, 80, 'ENABLED', 10),
+  (2, 'DRINK-TEA', '冰红茶', 'DRINK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '瓶装茶饮，适合长时段上机。', 5.00, 60, 'ENABLED', 20),
+  (3, 'DRINK-COFFEE', '罐装咖啡', 'DRINK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '提神咖啡，支持常温或冰镇。', 8.00, 40, 'ENABLED', 30),
+  (4, 'DRINK-ENERGY', '能量饮料', 'DRINK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '深夜包夜和竞技用户常购。', 9.00, 55, 'ENABLED', 40),
+  (5, 'DRINK-LEMON', '冻柠茶', 'DRINK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '冰爽茶饮，适合搭配零食。', 7.00, 45, 'ENABLED', 50),
+  (6, 'DRINK-WATER', '矿泉水', 'DRINK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '基础补水饮品。', 3.00, 100, 'ENABLED', 60),
+  (7, 'SNACK-CHIPS', '薯片', 'SNACK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '袋装零食。', 7.00, 50, 'ENABLED', 70),
+  (8, 'SNACK-SAUSAGE', '烤肠', 'SNACK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '热食零食，前台加热后配送。', 6.00, 45, 'ENABLED', 80),
+  (9, 'SNACK-NUTS', '每日坚果', 'SNACK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '小包装坚果。', 10.00, 35, 'ENABLED', 90),
+  (10, 'SNACK-LATIAO', '香辣条', 'SNACK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '休闲辣味零食。', 4.00, 70, 'ENABLED', 100),
+  (11, 'SNACK-CHOCO', '巧克力棒', 'SNACK', 'MERCHANDISE', NULL, NULL, NULL, NULL, '补充能量小食。', 6.00, 42, 'ENABLED', 110),
+  (12, 'MEAL-NOODLES', '香辣牛肉面', 'MEAL', 'MERCHANDISE', NULL, NULL, NULL, NULL, '热食简餐，适合长时段上机。', 12.00, 30, 'ENABLED', 120),
+  (13, 'MEAL-RICE', '黑椒鸡排饭', 'MEAL', 'MERCHANDISE', NULL, NULL, NULL, NULL, '主食套餐。', 22.00, 25, 'ENABLED', 130),
+  (14, 'MEAL-CHICKEN', '鸡排能量套餐', 'MEAL', 'MERCHANDISE', NULL, NULL, NULL, NULL, '鸡排与饮品组合。', 28.00, 18, 'ENABLED', 140),
+  (15, 'MEAL-SANDWICH', '火腿芝士三明治', 'MEAL', 'MERCHANDISE', NULL, NULL, NULL, NULL, '轻食简餐。', 15.00, 24, 'ENABLED', 150),
+  (16, 'PET-CAT-LIHUA', '宠物陪伴·狸花猫 30 分钟', 'PET_CAT', 'PET_COMPANION', 'CAT', '狸花猫', NULL, 30, '活泼亲人，适合休闲陪伴和拍照互动。', 28.00, 6, 'ENABLED', 210),
+  (17, 'PET-CAT-RAGDOLL', '宠物陪伴·布偶猫 30 分钟', 'PET_CAT', 'PET_COMPANION', 'CAT', '布偶猫', NULL, 30, '性格温顺，适合包房安静陪伴。', 32.00, 4, 'ENABLED', 220),
+  (18, 'PET-CAT-BRITISH', '宠物陪伴·英短猫 30 分钟', 'PET_CAT', 'PET_COMPANION', 'CAT', '英国短毛猫', NULL, 30, '圆脸安静，适合轻互动陪伴。', 30.00, 5, 'ENABLED', 230),
+  (19, 'PET-DOG-LABRADOR', '宠物陪伴·拉布拉多 30 分钟', 'PET_DOG', 'PET_COMPANION', 'DOG', '拉布拉多', NULL, 30, '友好稳定，适合多人包房互动。', 30.00, 4, 'ENABLED', 240),
+  (20, 'PET-DOG-CORGI', '宠物陪伴·柯基 30 分钟', 'PET_DOG', 'PET_COMPANION', 'DOG', '柯基', NULL, 30, '活跃可爱，适合休闲娱乐。', 26.00, 5, 'ENABLED', 250),
+  (21, 'PET-DOG-BORDER', '宠物陪伴·边牧 30 分钟', 'PET_DOG', 'PET_COMPANION', 'DOG', '边境牧羊犬', NULL, 30, '聪明亲人，适合互动小游戏。', 34.00, 3, 'ENABLED', 260),
+  (22, 'PET-REP-GECKO', '宠物陪伴·豹纹守宫 20 分钟', 'PET_REPTILE', 'PET_COMPANION', 'REPTILE', '豹纹守宫', NULL, 20, '安静观赏型爬宠，由工作人员陪同展示。', 35.00, 3, 'ENABLED', 270),
+  (23, 'PET-REP-DRAGON', '宠物陪伴·鬃狮蜥 20 分钟', 'PET_REPTILE', 'PET_COMPANION', 'REPTILE', '鬃狮蜥', NULL, 20, '温顺观赏互动，适合拍照体验。', 36.00, 2, 'ENABLED', 280),
+  (24, 'PET-REP-SNAKE', '宠物陪伴·玉米蛇 20 分钟', 'PET_REPTILE', 'PET_COMPANION', 'REPTILE', '玉米蛇', NULL, 20, '观赏体验服务，全程由工作人员看护。', 32.00, 2, 'ENABLED', 290),
+  (25, 'EXPERT-FPS', '高手陪玩·FPS 枪王 30 分钟', 'EXPERT_PLAY', 'EXPERT_COMPANION', NULL, NULL, 'FPS 枪王', 30, '真人高手陪玩，适合无畏契约、CS2、APEX。', 45.00, 8, 'ENABLED', 310),
+  (26, 'EXPERT-MOBA', '高手陪玩·MOBA 指挥 30 分钟', 'EXPERT_PLAY', 'EXPERT_COMPANION', NULL, NULL, 'MOBA 指挥', 30, '真人高手陪玩，适合英雄联盟开黑上分。', 42.00, 8, 'ENABLED', 320),
+  (27, 'EXPERT-DUNGEON', '高手陪玩·副本速刷 30 分钟', 'EXPERT_PLAY', 'EXPERT_COMPANION', NULL, NULL, '副本速刷', 30, '真人高手协助副本机制教学与速刷。', 38.00, 6, 'ENABLED', 330),
+  (28, 'EXPERT-REVIEW', '高手陪玩·战术复盘 30 分钟', 'EXPERT_PLAY', 'EXPERT_COMPANION', NULL, NULL, '战术复盘', 30, '真人高手语音复盘，适合战队训练。', 50.00, 5, 'ENABLED', 340)
 ON DUPLICATE KEY UPDATE
   product_code = VALUES(product_code),
   product_name = VALUES(product_name),
   category = VALUES(category),
+  product_type = VALUES(product_type),
+  pet_species = VALUES(pet_species),
+  pet_breed = VALUES(pet_breed),
+  expert_role = VALUES(expert_role),
+  service_duration_minutes = VALUES(service_duration_minutes),
+  description = VALUES(description),
   price = VALUES(price),
   stock = VALUES(stock),
   status = VALUES(status),
@@ -826,13 +936,13 @@ INSERT INTO consume_record (id, consume_no, member_id, session_id, consume_type,
   (3, 'C202609020002', 2, 2, 'MACHINE', 22.00, 198.00, 3, '2026-09-02 19:55:00'),
   (4, 'C202609020003', 1, NULL, 'SHOP', 33.00, 86.30, 5, '2026-09-02 19:05:00'),
   (5, 'C202609020004', 2, NULL, 'SHOP', 45.00, 153.00, 5, '2026-09-02 19:10:00'),
-  (6, 'C202609020005', 5, NULL, 'SHOP', 34.00, 146.00, 5, '2026-09-02 19:30:00'),
+  (6, 'C202609020005', 5, NULL, 'SHOP', 38.00, 142.00, 5, '2026-09-02 19:30:00'),
   (7, 'C202609020006', 6, 5, 'MACHINE', 36.00, 514.00, 3, '2026-09-02 20:45:00'),
-  (8, 'C202609020007', 6, NULL, 'SHOP', 72.00, 442.00, 5, '2026-09-02 20:50:00'),
+  (8, 'C202609020007', 6, NULL, 'SHOP', 83.00, 431.00, 5, '2026-09-02 20:50:00'),
   (9, 'C202608250001', 8, 9, 'MACHINE', 108.00, 172.00, 3, '2026-08-25 23:20:00'),
   (10, 'C202608240001', 9, 10, 'MACHINE', 40.00, 80.00, 3, '2026-08-24 13:00:00'),
   (11, 'C202609020008', 10, 7, 'MACHINE', 78.00, 742.00, 3, '2026-09-02 20:55:00'),
-  (12, 'C202609020009', 10, NULL, 'SHOP', 90.00, 652.00, 5, '2026-09-02 21:00:00')
+  (12, 'C202609020009', 10, NULL, 'SHOP', 102.00, 640.00, 5, '2026-09-02 21:00:00')
 ON DUPLICATE KEY UPDATE
   member_id = VALUES(member_id),
   session_id = VALUES(session_id),
@@ -847,17 +957,17 @@ INSERT INTO member_account_flow
    balance_after, operator_id, remark, created_at)
 VALUES
   (1, 'F202609020001', 1, 1, 'RECHARGE', 130.00, 0.00, 130.00, 3, '晚间上机充值', '2026-09-02 18:00:00'),
-  (2, 'F202609020002', 1, 4, 'PURCHASE', -33.00, 119.30, 86.30, 5, '猫系陪玩和饮品订单', '2026-09-02 19:05:00'),
+  (2, 'F202609020002', 1, 4, 'PURCHASE', -33.00, 119.30, 86.30, 5, '狸花猫宠物陪伴和饮品订单', '2026-09-02 19:05:00'),
   (3, 'F202609020003', 2, 2, 'RECHARGE', 220.00, 0.00, 220.00, 3, 'VIP 会员续充', '2026-09-02 17:30:00'),
   (4, 'F202609020004', 2, 5, 'PURCHASE', -45.00, 198.00, 153.00, 5, '简餐和饮品订单', '2026-09-02 19:10:00'),
   (5, 'F202609020005', 5, 4, 'RECHARGE', 180.00, 0.00, 180.00, 3, '开黑前充值', '2026-09-02 18:55:00'),
-  (6, 'F202609020006', 5, 6, 'PURCHASE', -34.00, 180.00, 146.00, 5, '零食和犬系陪玩订单', '2026-09-02 19:30:00'),
+  (6, 'F202609020006', 5, 6, 'PURCHASE', -38.00, 180.00, 142.00, 5, '零食和柯基宠物陪伴订单', '2026-09-02 19:30:00'),
   (7, 'F202609020007', 6, 5, 'RECHARGE', 550.00, 0.00, 550.00, 3, '战队训练充值', '2026-09-02 20:00:00'),
-  (8, 'F202609020008', 6, 8, 'PURCHASE', -72.00, 514.00, 442.00, 5, '五人房陪练组合订单', '2026-09-02 20:50:00'),
+  (8, 'F202609020008', 6, 8, 'PURCHASE', -83.00, 514.00, 431.00, 5, '高手陪玩和爬宠陪伴组合订单', '2026-09-02 20:50:00'),
   (9, 'F202608250001', 8, 7, 'RECHARGE', 280.00, 0.00, 280.00, 3, '周末组队充值', '2026-08-25 20:00:00'),
   (10, 'F202608250002', 8, 9, 'CONSUME', -108.00, 280.00, 172.00, 3, '双人包房上机消费', '2026-08-25 23:20:00'),
   (11, 'F202609020009', 10, 9, 'RECHARGE', 900.00, 0.00, 900.00, 3, '五人房包夜充值', '2026-09-02 19:20:00'),
-  (12, 'F202609020010', 10, 12, 'PURCHASE', -90.00, 742.00, 652.00, 5, '战队包房点单和陪玩', '2026-09-02 21:00:00')
+  (12, 'F202609020010', 10, 12, 'PURCHASE', -102.00, 742.00, 640.00, 5, '战队包房点单和真人高手陪玩', '2026-09-02 21:00:00')
 ON DUPLICATE KEY UPDATE
   member_id = VALUES(member_id),
   related_id = VALUES(related_id),
@@ -872,7 +982,7 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO service_call
   (id, call_no, member_id, device_id, call_type, message, status, handled_by, handled_at, created_at)
 VALUES
-  (1, 'SC202609020001', 1, 1, 'FRONT_DESK', '想确认猫系陪玩还需要等多久。', 'PENDING', NULL, NULL, '2026-09-02 20:45:00'),
+  (1, 'SC202609020001', 1, 1, 'FRONT_DESK', '想确认狸花猫宠物陪伴还需要等多久。', 'PENDING', NULL, NULL, '2026-09-02 20:45:00'),
   (2, 'SC202609020002', 2, 5, 'SUPPLIES', '需要补一包纸巾和一次性耳机套。', 'PROCESSING', 3, NULL, '2026-09-02 20:38:00'),
   (3, 'SC202609020003', 5, 7, 'CLEANING', '桌面有饮料水渍，请帮忙清洁。', 'COMPLETED', 3, '2026-09-02 20:25:00', '2026-09-02 20:10:00'),
   (4, 'SC202609020004', 6, 25, 'DEVICE_HELP', '鼠标侧键无法触发宏，请协助检查。', 'PENDING', NULL, NULL, '2026-09-02 20:55:00'),
@@ -891,14 +1001,14 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO shop_order
   (id, order_no, member_id, device_id, total_amount, status, remark, handled_by, paid_at, completed_at, created_at)
 VALUES
-  (1, 'O202609020001', 1, 1, 33.00, 'PENDING', '猫系陪玩优先 FPS，饮料少冰。', NULL, '2026-09-02 19:05:00', NULL, '2026-09-02 19:05:00'),
+  (1, 'O202609020001', 1, 1, 33.00, 'PENDING', '狸花猫宠物陪伴，饮料少冰。', NULL, '2026-09-02 19:05:00', NULL, '2026-09-02 19:05:00'),
   (2, 'O202609020002', 2, 5, 45.00, 'PREPARING', '黑椒鸡排饭不要辣，咖啡常温。', 3, '2026-09-02 19:10:00', NULL, '2026-09-02 19:10:00'),
-  (3, 'O202609020003', 5, 7, 34.00, 'DELIVERING', '犬系陪玩休闲整活，顺带一瓶冻柠茶。', 3, '2026-09-02 19:30:00', NULL, '2026-09-02 19:30:00'),
-  (4, 'O202609020004', 6, 25, 72.00, 'PENDING', '五排需要猫系 FPS 和爬宠系复盘各一份。', NULL, '2026-09-02 20:50:00', NULL, '2026-09-02 20:50:00'),
-  (5, 'O202609020005', 10, 29, 90.00, 'PREPARING', '战队房补给，陪玩要求冷静指挥。', 3, '2026-09-02 21:00:00', NULL, '2026-09-02 21:00:00'),
+  (3, 'O202609020003', 5, 7, 38.00, 'DELIVERING', '柯基宠物陪伴，顺带一瓶冻柠茶。', 3, '2026-09-02 19:30:00', NULL, '2026-09-02 19:30:00'),
+  (4, 'O202609020004', 6, 25, 83.00, 'PENDING', '需要 FPS 高手陪玩和玉米蛇观赏陪伴各一份。', NULL, '2026-09-02 20:50:00', NULL, '2026-09-02 20:50:00'),
+  (5, 'O202609020005', 10, 29, 102.00, 'PREPARING', '战队房补给，高手陪玩要求冷静指挥。', 3, '2026-09-02 21:00:00', NULL, '2026-09-02 21:00:00'),
   (6, 'O202608250001', 8, 13, 37.00, 'COMPLETED', '双人包房周末套餐补给。', 3, '2026-08-25 22:05:00', '2026-08-25 22:20:00', '2026-08-25 22:05:00'),
   (7, 'O202608240001', 9, 19, 26.00, 'COMPLETED', '上午刷本简餐。', 3, '2026-08-24 11:00:00', '2026-08-24 11:15:00', '2026-08-24 11:00:00'),
-  (8, 'O202609020006', 4, 8, 67.00, 'CANCELLED', '临时取消陪玩服务。', 3, '2026-09-02 18:20:00', NULL, '2026-09-02 18:20:00')
+  (8, 'O202609020006', 4, 8, 71.00, 'CANCELLED', '临时取消爬宠陪伴服务。', 3, '2026-09-02 18:20:00', NULL, '2026-09-02 18:20:00')
 ON DUPLICATE KEY UPDATE
   member_id = VALUES(member_id),
   device_id = VALUES(device_id),
@@ -913,28 +1023,28 @@ ON DUPLICATE KEY UPDATE
 INSERT INTO shop_order_item
   (id, order_id, product_id, product_name, unit_price, quantity, subtotal)
 VALUES
-  (1, 1, 16, '猫系陪玩·FPS 枪王 30 分钟', 28.00, 1, 28.00),
+  (1, 1, 16, '宠物陪伴·狸花猫 30 分钟', 28.00, 1, 28.00),
   (2, 1, 1, '冰镇可乐', 5.00, 1, 5.00),
   (3, 2, 13, '黑椒鸡排饭', 22.00, 1, 22.00),
   (4, 2, 3, '罐装咖啡', 8.00, 1, 8.00),
   (5, 2, 15, '火腿芝士三明治', 15.00, 1, 15.00),
-  (6, 3, 20, '犬系陪玩·休闲整活 30 分钟', 22.00, 1, 22.00),
+  (6, 3, 20, '宠物陪伴·柯基 30 分钟', 26.00, 1, 26.00),
   (7, 3, 5, '冻柠茶', 7.00, 1, 7.00),
   (8, 3, 1, '冰镇可乐', 5.00, 1, 5.00),
-  (9, 4, 16, '猫系陪玩·FPS 枪王 30 分钟', 28.00, 1, 28.00),
-  (10, 4, 24, '爬宠系陪玩·冷静上分复盘', 38.00, 1, 38.00),
+  (9, 4, 25, '高手陪玩·FPS 枪王 30 分钟', 45.00, 1, 45.00),
+  (10, 4, 24, '宠物陪伴·玉米蛇 20 分钟', 32.00, 1, 32.00),
   (11, 4, 6, '矿泉水', 3.00, 2, 6.00),
-  (12, 5, 24, '爬宠系陪玩·冷静上分复盘', 38.00, 1, 38.00),
+  (12, 5, 28, '高手陪玩·战术复盘 30 分钟', 50.00, 1, 50.00),
   (13, 5, 14, '鸡排能量套餐', 28.00, 1, 28.00),
   (14, 5, 4, '能量饮料', 9.00, 2, 18.00),
   (15, 5, 8, '烤肠', 6.00, 1, 6.00),
-  (16, 6, 19, '犬系陪玩·上分冲锋 30 分钟', 30.00, 1, 30.00),
+  (16, 6, 19, '宠物陪伴·拉布拉多 30 分钟', 30.00, 1, 30.00),
   (17, 6, 7, '薯片', 7.00, 1, 7.00),
   (18, 7, 12, '香辣牛肉面', 12.00, 1, 12.00),
   (19, 7, 2, '冰红茶', 5.00, 2, 10.00),
   (20, 7, 10, '香辣条', 4.00, 1, 4.00),
-  (21, 8, 22, '爬宠系陪玩·策略教学 30 分钟', 35.00, 1, 35.00),
-  (22, 8, 23, '爬宠系陪玩·压枪训练 30 分钟', 32.00, 1, 32.00)
+  (21, 8, 22, '宠物陪伴·豹纹守宫 20 分钟', 35.00, 1, 35.00),
+  (22, 8, 23, '宠物陪伴·鬃狮蜥 20 分钟', 36.00, 1, 36.00)
 ON DUPLICATE KEY UPDATE
   order_id = VALUES(order_id),
   product_id = VALUES(product_id),

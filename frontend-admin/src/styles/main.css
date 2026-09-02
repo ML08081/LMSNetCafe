@@ -626,14 +626,17 @@ body {
 }
 .product-symbol.category-snack { background: #fff4dc; color: #a56c0b; }
 .product-symbol.category-meal { background: #feeceb; color: #b8493e; }
-.product-symbol.category-playmate_cat { background: #eef4ff; color: #3366c8; }
-.product-symbol.category-playmate_dog { background: #eaf7ec; color: #238450; }
-.product-symbol.category-playmate_reptile { background: #f4eeff; color: #7750b6; }
+.product-symbol.category-pet_cat { background: #fff7e6; color: #c47a00; }
+.product-symbol.category-pet_dog { background: #eaf7ec; color: #238450; }
+.product-symbol.category-pet_reptile { background: #f4eeff; color: #7750b6; }
+.product-symbol.category-expert_play { background: #fef2f2; color: #c2410c; }
 .product-copy { min-width: 0; }
-.product-copy strong, .product-copy span, .product-copy b { display: block; overflow-wrap: anywhere; }
+.product-copy strong, .product-copy span, .product-copy small, .product-copy b { display: block; overflow-wrap: anywhere; }
 .product-copy span { margin: 3px 0; color: #7d8896; font-size: 11px; }
+.product-copy small { margin-bottom: 3px; color: #8a949f; font-size: 11px; line-height: 1.45; }
 .product-copy b { color: #168266; font-size: 14px; }
 .product-item .el-input-number { width: 96px; }
+.product-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .cart-panel { position: sticky; top: 0; }
 .cart-lines { max-height: 210px; overflow: auto; margin-bottom: 12px; }
 .cart-lines > div, .cart-total {
@@ -873,6 +876,7 @@ body {
   .profile-insight-grid,
   .quick-call-grid,
   .product-grid,
+  .product-form-row,
   .service-desk-metrics {
     grid-template-columns: 1fr;
   }

@@ -1,7 +1,7 @@
 <template>
   <section class="page service-desk-page">
     <div class="page-header">
-      <div><h1 class="page-title">服务与订单</h1><p class="page-subtitle">处理会员机位呼叫、点餐订单、陪玩服务和配送进度</p></div>
+      <div><h1 class="page-title">服务与订单</h1><p class="page-subtitle">处理会员机位呼叫、商品点单、宠物陪伴、高手陪玩和配送进度</p></div>
       <el-button :icon="Refresh" :loading="loading" circle title="刷新" @click="loadAll" />
     </div>
 
@@ -24,7 +24,7 @@
             <el-table-column label="处理" width="150" fixed="right"><template #default="scope"><el-select :model-value="scope.row.status" size="small" :disabled="['COMPLETED', 'CANCELLED'].includes(scope.row.status)" @change="(value: string) => updateCall(scope.row, value)"><el-option v-for="item in callOptions(scope.row.status)" :key="item.value" :label="item.label" :value="item.value" /></el-select></template></el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane name="orders"><template #label>点单/陪玩订单 <el-badge :value="pendingOrders" :hidden="!pendingOrders" /></template>
+        <el-tab-pane name="orders"><template #label>商品/服务订单 <el-badge :value="pendingOrders" :hidden="!pendingOrders" /></template>
           <el-table :data="orders" empty-text="暂无点餐订单">
             <el-table-column label="状态" width="120"><template #default="scope"><el-tag :type="statusType(scope.row.status)">{{ orderStatus(scope.row.status) }}</el-tag></template></el-table-column>
             <el-table-column prop="orderNo" label="订单号" width="190" />

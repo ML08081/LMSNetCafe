@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .hasAuthority("portal:services")
                         .requestMatchers("/api/v1/frontdesk/services/**")
                         .hasAuthority("service:manage")
+                        .requestMatchers("/api/v1/products/**")
+                        .hasAuthority("product:manage")
                         .requestMatchers("/api/v1/members/**")
                         .hasAuthority("member:manage")
                         .requestMatchers(HttpMethod.GET, "/api/v1/devices/**")

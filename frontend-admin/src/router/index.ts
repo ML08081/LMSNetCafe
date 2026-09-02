@@ -12,6 +12,7 @@ export const moduleRoutes = [
   { path: 'billing/rules', name: 'billing-rules', component: () => import('../views/billing/BillingRuleView.vue'), meta: { title: '计费规则', permission: 'billing:manage', icon: 'Coin' } },
   { path: 'sessions', name: 'sessions', component: () => import('../views/session/SessionView.vue'), meta: { title: '上机记录', permission: 'session:view', icon: 'Clock' } },
   { path: 'faces', name: 'faces', component: () => import('../views/face/FaceView.vue'), meta: { title: '人脸认证', permission: 'face:manage', icon: 'Camera' } },
+  { path: 'products', name: 'products', component: () => import('../views/product/ProductView.vue'), meta: { title: '商品管理', permission: 'product:manage', icon: 'ShoppingCart' } },
   { path: 'service-desk', name: 'service-desk', component: () => import('../views/service/ServiceDeskView.vue'), meta: { title: '服务与订单', permission: 'service:manage', icon: 'ShoppingCart' } },
   { path: 'statistics', name: 'statistics', component: () => import('../views/statistics/StatisticsView.vue'), meta: { title: '数据统计', permission: 'statistics:view', icon: 'DataAnalysis' } },
   { path: 'system/users', name: 'system-users', component: () => import('../views/system/SystemUserView.vue'), meta: { title: '系统用户', permission: 'system:user', icon: 'Setting' } },

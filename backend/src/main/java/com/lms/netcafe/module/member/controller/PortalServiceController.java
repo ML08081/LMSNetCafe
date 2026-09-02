@@ -48,7 +48,11 @@ public class PortalServiceController {
                 "SELECT balance FROM member_account WHERE member_id = ?", BigDecimal.class, memberId);
         List<Map<String, Object>> products = jdbcTemplate.queryForList("""
                 SELECT id, product_code AS productCode, product_name AS productName,
-                       category, price, stock, status
+                       category, product_type AS productType,
+                       pet_species AS petSpecies, pet_breed AS petBreed,
+                       expert_role AS expertRole,
+                       service_duration_minutes AS serviceDurationMinutes,
+                       description, price, stock, status
                 FROM shop_product
                 WHERE status = 'ENABLED'
                 ORDER BY sort_order, id

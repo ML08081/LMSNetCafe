@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">呼叫与点餐</h1>
-        <p class="page-subtitle">呼叫前台，或使用预存余额购买饮品、零食、简餐与陪玩服务</p>
+        <p class="page-subtitle">呼叫前台，或使用预存余额购买饮品、零食、简餐、真实宠物陪伴与高手陪玩</p>
       </div>
       <div class="service-balance"><span>可用余额</span><strong>{{ money(balance) }}</strong></div>
     </div>
@@ -24,7 +24,7 @@
     <div class="service-market-grid">
       <section class="panel product-panel" v-loading="loading">
         <div class="panel-header product-toolbar">
-          <h2>门店商品与陪玩</h2>
+          <h2>门店商品与服务</h2>
           <el-segmented v-model="category" :options="categoryOptions" size="small" />
         </div>
         <div class="product-grid">
@@ -34,7 +34,8 @@
             </div>
             <div class="product-copy">
               <strong>{{ product.productName }}</strong>
-              <span>{{ categoryLabel(product.category) }} · 库存 {{ product.stock }}</span>
+              <span>{{ categoryLabel(product.category) }} · {{ productMeta(product) }} · 库存 {{ product.stock }}</span>
+              <small v-if="product.description">{{ product.description }}</small>
               <b>{{ money(product.price) }}</b>
             </div>
             <el-input-number
@@ -101,7 +102,19 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '../../api/http'
 
 interface ApiResponse<T> { data: T }
-interface Product { id: number; productName: string; category: string; price: number; stock: number }
+interface Product {
+  id: number
+  productName: string
+  category: string
+  productType: string
+  petSpecies?: string
+  petBreed?: string
+  expertRole?: string
+  serviceDurationMinutes?: number
+  description?: string
+  price: number
+  stock: number
+}
 
 const callOptions = [
   { type: 'FRONT_DESK', label: '呼叫前台', description: '账户、计费或其他协助', icon: markRaw(Bell) },
@@ -112,8 +125,8 @@ const callOptions = [
 const categoryOptions = [
   { label: '全部', value: 'ALL' }, { label: '饮品', value: 'DRINK' },
   { label: '零食', value: 'SNACK' }, { label: '简餐', value: 'MEAL' },
-  { label: '猫系陪玩', value: 'PLAYMATE_CAT' }, { label: '犬系陪玩', value: 'PLAYMATE_DOG' },
-  { label: '爬宠系陪玩', value: 'PLAYMATE_REPTILE' }
+  { label: '猫类宠物', value: 'PET_CAT' }, { label: '犬类宠物', value: 'PET_DOG' },
+  { label: '爬宠陪伴', value: 'PET_REPTILE' }, { label: '高手陪玩', value: 'EXPERT_PLAY' }
 ]
 const loading = ref(false)
 const paying = ref(false)
@@ -188,14 +201,27 @@ function setQuantity(id: number, value: number) { cart[id] = value }
 function money(value: unknown) { return `¥${Number(value || 0).toFixed(2)}` }
 function formatDate(value: string) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
 function categoryLabel(value: string) {
-  return ({ DRINK: '饮品', SNACK: '零食', MEAL: '简餐', PLAYMATE_CAT: '猫系陪玩', PLAYMATE_DOG: '犬系陪玩', PLAYMATE_REPTILE: '爬宠系陪玩' } as any)[value] || value
+  return ({ DRINK: '饮品', SNACK: '零食', MEAL: '简餐', PET_CAT: '猫类宠物', PET_DOG: '犬类宠物', PET_REPTILE: '爬宠陪伴', EXPERT_PLAY: '高手陪玩' } as any)[value] || value
+}
+function productMeta(product: Product) {
+  if (product.productType === 'PET_COMPANION') {
+    return `${petSpeciesLabel(product.petSpecies)} / ${product.petBreed || '未填写品种'} / ${product.serviceDurationMinutes || 0} 分钟`
+  }
+  if (product.productType === 'EXPERT_COMPANION') {
+    return `${product.expertRole || '高手服务'} / ${product.serviceDurationMinutes || 0} 分钟`
+  }
+  return '普通商品'
+}
+function petSpeciesLabel(value?: string) {
+  return ({ CAT: '猫', DOG: '狗', REPTILE: '爬宠' } as Record<string, string>)[value || ''] || '宠物'
 }
 function productIcon(value: string) {
   if (value === 'DRINK') return CoffeeCup
   if (value === 'MEAL') return Dish
-  if (value === 'PLAYMATE_CAT') return Star
-  if (value === 'PLAYMATE_DOG') return Trophy
-  if (value === 'PLAYMATE_REPTILE') return Medal
+  if (value === 'PET_CAT') return Star
+  if (value === 'PET_DOG') return Service
+  if (value === 'PET_REPTILE') return Medal
+  if (value === 'EXPERT_PLAY') return Trophy
   return Food
 }
 function callLabel(value: string) { return ({ FRONT_DESK: '呼叫前台', CLEANING: '清洁机位', SUPPLIES: '补充用品', DEVICE_HELP: '设备协助' } as any)[value] || value }
