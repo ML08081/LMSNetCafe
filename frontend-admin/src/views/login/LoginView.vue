@@ -23,15 +23,6 @@
         <p class="face-privacy">照片仅用于本次识别，不保存登录抓拍原图。</p>
       </div>
 
-      <template v-if="loginMode === 'password'">
-        <div class="demo-accounts">
-          <button v-for="account in accounts" :key="account.username" type="button" @click="selectAccount(account.username)">
-            <strong>{{ account.role }}</strong>
-            <span>{{ account.username }}</span>
-          </button>
-        </div>
-        <p class="demo-password">演示密码统一为 123456</p>
-      </template>
     </section>
   </main>
 </template>
@@ -54,17 +45,7 @@ const loginOptions = [
   { label: '人脸识别', value: 'face' }
 ]
 
-const form = reactive({ username: 'admin', password: '123456' })
-const accounts = [
-  { role: '超级管理员', username: 'admin' },
-  { role: '前台人员', username: 'cashier' },
-  { role: '普通用户', username: 'member001' }
-]
-
-function selectAccount(username: string) {
-  form.username = username
-  form.password = '123456'
-}
+const form = reactive({ username: '', password: '' })
 
 async function submitPassword() {
   loading.value = true

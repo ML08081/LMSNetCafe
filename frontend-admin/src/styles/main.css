@@ -441,50 +441,6 @@ body {
   font-size: 13px;
 }
 
-.demo-accounts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.demo-accounts button {
-  min-width: 0;
-  border: 1px solid #dfe5eb;
-  border-radius: 6px;
-  background: #fff;
-  color: #364152;
-  cursor: pointer;
-  padding: 10px 8px;
-  text-align: left;
-}
-
-.demo-accounts button:hover {
-  border-color: #2f80ed;
-  background: #f5f9ff;
-}
-
-.demo-accounts strong,
-.demo-accounts span {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-.demo-accounts strong {
-  font-size: 12px;
-}
-
-.demo-accounts span {
-  margin-top: 4px;
-  color: #7d8896;
-  font-size: 11px;
-}
-
-.login-panel .demo-password {
-  margin: 8px 0 0;
-  font-size: 12px;
-}
-
 .role-customer .sidebar {
   background: #17352e;
 }
@@ -871,7 +827,6 @@ body {
   }
 
   .portal-actions,
-  .demo-accounts,
   .pet-setting-options,
   .profile-insight-grid,
   .quick-call-grid,
@@ -881,7 +836,4 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .demo-accounts button {
-    text-align: center;
-  }
 }
