@@ -36,6 +36,13 @@ dist-electron/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+*.timestamp-*.mjs
+
+# WorkBuddy 工具/会话产物（不入库）
+.workbuddy/
+.arts/
+.codegraph/
+.merkle-snapshot.json
 
 # Python
 __pycache__/

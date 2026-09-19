@@ -1,0 +1,1 @@
+﻿Start-Process node -ArgumentList "D:\LMSNetpj\frontend-admin\node_modules\vite\bin\vite.js","--host","0.0.0.0","--port","5173" -WorkingDirectory "D:\LMSNetpj\frontend-admin" -WindowStyle Hidden
