@@ -59,6 +59,8 @@ if ($Backend) {
 }
 
 if ($Admin) {
+  # The browser must call its local frontend proxy, including on a second computer.
+  $env:VITE_API_BASE_URL = '/api/v1'
   Push-Location (Join-Path $repoRoot 'frontend-admin')
   npm run dev
   Pop-Location
