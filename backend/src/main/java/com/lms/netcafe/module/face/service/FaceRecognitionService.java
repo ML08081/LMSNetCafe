@@ -60,11 +60,31 @@ public class FaceRecognitionService {
 
     public FaceResult verify(Long userId, Long deviceId, MultipartFile image) {
         Map<String, Object> user = requireEnabledUser(userId);
+        Integer active = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM face_profile WHERE sys_user_id = ? AND status = 'ACTIVE'", Integer.class, userId);
+        if (active == null || active == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该用户没有有效人脸档案，请先录入");
+        }
         Long memberId = nullableLong(user.get("member_id"));
         FaceResult result = faceServiceClient.verify(
                 userId, memberId, bytes(image), image.getOriginalFilename(), image.getContentType());
         writeLog(userId, memberId, deviceId, result);
         return result;
+    }
+
+    public void verifyMember(Long memberId, Long deviceId, MultipartFile image) {
+        List<Long> users = jdbcTemplate.queryForList("""
+                SELECT u.id FROM sys_user u
+                JOIN face_profile fp ON fp.sys_user_id = u.id AND fp.status = 'ACTIVE'
+                WHERE u.member_id = ? AND u.status = 'ENABLED' AND u.deleted = 0
+                """, Long.class, memberId);
+        if (users.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该会员尚未绑定可用的人脸档案，请先在系统用户中绑定会员并录入人脸");
+        }
+        FaceResult result = verify(users.get(0), deviceId, image);
+        if (!result.matched()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, result.message());
+        }
     }
 
     public FaceResult identify(MultipartFile image) {

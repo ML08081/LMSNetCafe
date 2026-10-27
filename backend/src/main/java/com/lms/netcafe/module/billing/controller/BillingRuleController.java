@@ -43,11 +43,15 @@ public class BillingRuleController {
 
     @PatchMapping("/{ruleId}")
     public ApiResponse<Void> update(@PathVariable Long ruleId, @Valid @RequestBody UpdateRuleRequest request) {
-        jdbcTemplate.update("""
+        if (!List.of("ENABLED", "DISABLED").contains(request.status())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "计费规则状态无效");
+        }
+        int changed = jdbcTemplate.update("""
                 UPDATE billing_rule
                 SET price_per_hour = ?, low_balance_threshold = ?, status = ?
                 WHERE id = ?
                 """, request.pricePerHour(), request.lowBalanceThreshold(), request.status(), ruleId);
+        if (changed == 0) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "计费规则不存在");
         return ApiResponse.success(null);
     }
 

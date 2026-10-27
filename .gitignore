@@ -52,6 +52,9 @@ venv/
 .pytest_cache/
 
 # Runtime data
+face-service/models/*.onnx
+face-service/models/*.download
+face-service/tests/fixtures/
 face-service/data/features/*
 face-service/data/uploads/*
 !face-service/data/features/.gitkeep

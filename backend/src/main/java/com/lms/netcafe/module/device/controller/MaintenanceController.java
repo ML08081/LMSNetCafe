@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/v1/maintenance")
@@ -47,17 +49,24 @@ public class MaintenanceController {
             @PathVariable Long faultId,
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody ResolveRequest request) {
+        List<Long> devices = jdbcTemplate.queryForList("SELECT device_id FROM device_fault WHERE id = ?", Long.class, faultId);
+        if (devices.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "故障记录不存在");
+        Long deviceId = devices.get(0);
+        jdbcTemplate.queryForMap("SELECT id FROM device_info WHERE id = ? FOR UPDATE", deviceId);
+        String status = jdbcTemplate.queryForObject("SELECT status FROM device_fault WHERE id = ? FOR UPDATE", String.class, faultId);
+        if ("RESOLVED".equals(status)) throw new ResponseStatusException(HttpStatus.CONFLICT, "该故障已处理，请勿重复提交");
         jdbcTemplate.update("""
                 INSERT INTO repair_record (fault_id, repair_user_id, result_desc)
                 VALUES (?, ?, ?)
                 """, faultId, user.id(), request.resultDesc());
         jdbcTemplate.update("UPDATE device_fault SET status = 'RESOLVED' WHERE id = ?", faultId);
         jdbcTemplate.update("""
-                UPDATE device_info d
-                JOIN device_fault f ON f.device_id = d.id
-                SET d.status = 'IDLE'
-                WHERE f.id = ?
-                """, faultId);
+                UPDATE device_info SET status = CASE
+                  WHEN EXISTS (SELECT 1 FROM device_fault WHERE device_id = ? AND status <> 'RESOLVED') THEN 'FAULT'
+                  WHEN EXISTS (SELECT 1 FROM machine_session WHERE device_id = ? AND status = 'RUNNING') THEN 'IN_USE'
+                  WHEN status IN ('MAINTENANCE', 'DISABLED') THEN status ELSE 'IDLE' END
+                WHERE id = ?
+                """, deviceId, deviceId, deviceId);
         return ApiResponse.success(null);
     }
 

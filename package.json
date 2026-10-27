@@ -9,7 +9,10 @@
     "build:admin": "npm --prefix frontend-admin run build",
     "build:pet": "npm --prefix desktop-pet run build",
     "package:lan": "powershell -ExecutionPolicy Bypass -File scripts/make-lan-package.ps1",
-    "start:lan": "powershell -ExecutionPolicy Bypass -File scripts/start-lan-host.ps1"
+    "start:lan": "powershell -ExecutionPolicy Bypass -File scripts/start-lan-host.ps1",
+    "setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-project.ps1",
+    "sync": "powershell -ExecutionPolicy Bypass -File scripts/update-project.ps1 -Install",
+    "check:demo": "powershell -ExecutionPolicy Bypass -File scripts/check-demo.ps1"
   },
   "workspaces": [
     "frontend-admin",

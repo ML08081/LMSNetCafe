@@ -4,7 +4,7 @@ param(
   [switch]$Face,
   [switch]$Pet,
   [string]$DevToolsRoot = 'E:\DevTools',
-  [string]$EnvFile = '',
+  [string]$EnvFile = '.env',
   [string]$BindHost = '0.0.0.0',
   [string]$FaceBindHost = '127.0.0.1',
   [string]$BackendBaseUrl = 'http://127.0.0.1:8080',
@@ -31,14 +31,16 @@ function Import-EnvFile {
   if (-not $Path) { return }
   $resolved = if ([System.IO.Path]::IsPathRooted($Path)) { $Path } else { Join-Path $repoRoot $Path }
   if (-not (Test-Path $resolved)) {
-    Write-Warning "Env file not found: $resolved"
+    if ($Path -ne '.env') { Write-Warning "Env file not found: $resolved" }
     return
   }
   Get-Content $resolved | ForEach-Object {
     $line = $_.Trim()
     if (-not $line -or $line.StartsWith('#') -or -not $line.Contains('=')) { return }
     $name, $value = $line.Split('=', 2)
-    [Environment]::SetEnvironmentVariable($name.Trim(), $value.Trim(), 'Process')
+    if (-not [Environment]::GetEnvironmentVariable($name.Trim(), 'Process')) {
+      [Environment]::SetEnvironmentVariable($name.Trim(), $value.Trim().Trim('"').Trim("'"), 'Process')
+    }
   }
 }
 
@@ -64,7 +66,9 @@ if ($Admin) {
 
 if ($Face) {
   Push-Location (Join-Path $repoRoot 'face-service')
-  python -m uvicorn app.main:app --host $FaceBindHost --port 9000 --reload
+  $facePython = Join-Path $repoRoot 'face-service\.venv\Scripts\python.exe'
+  if (-not (Test-Path -LiteralPath $facePython)) { throw 'Run scripts/setup-project.ps1 to create the face-service environment.' }
+  & $facePython -m uvicorn app.main:app --host $FaceBindHost --port 9000
   Pop-Location
 }
 

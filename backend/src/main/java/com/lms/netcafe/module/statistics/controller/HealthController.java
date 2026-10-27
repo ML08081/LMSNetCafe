@@ -1,6 +1,7 @@
 package com.lms.netcafe.module.statistics.controller;
 
 import com.lms.netcafe.common.api.ApiResponse;
+import com.lms.netcafe.module.face.service.FaceServiceClient;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,16 +14,26 @@ import org.springframework.web.bind.annotation.RestController;
 public class HealthController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final FaceServiceClient faceClient;
 
-    public HealthController(JdbcTemplate jdbcTemplate) {
+    public HealthController(JdbcTemplate jdbcTemplate, FaceServiceClient faceClient) {
         this.jdbcTemplate = jdbcTemplate;
+        this.faceClient = faceClient;
     }
 
     @GetMapping("/health")
     public ApiResponse<Map<String, Object>> health() {
+        boolean database;
+        try {
+            database = Integer.valueOf(1).equals(jdbcTemplate.queryForObject("SELECT 1", Integer.class));
+            jdbcTemplate.queryForObject("SELECT COUNT(*) FROM session_billing_snapshot", Integer.class);
+        } catch (Exception ex) { database = false; }
+        Map<String, Object> face = faceClient.health();
         return ApiResponse.success(Map.of(
                 "service", "lms-netcafe-backend",
-                "status", "UP",
+                "status", database && Boolean.TRUE.equals(face.get("ready")) ? "UP" : "DEGRADED",
+                "databaseReady", database,
+                "face", face,
                 "timestamp", OffsetDateTime.now().toString()));
     }
 

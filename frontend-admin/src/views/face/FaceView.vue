@@ -36,6 +36,7 @@
         </el-form>
         <CameraCapture
           :key="captureKey"
+          :disabled="submitting"
           :action-label="operation === 'enroll' ? '拍照并保存档案' : '拍照并验证'"
           @captured="submitCapture"
         />

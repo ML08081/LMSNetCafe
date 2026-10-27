@@ -1,6 +1,7 @@
 package com.lms.netcafe.module.device.controller;
 
 import com.lms.netcafe.common.api.ApiResponse;
+import com.lms.netcafe.module.billing.service.SessionBilling;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
@@ -87,9 +88,10 @@ public class ClientDeviceController {
         List<Map<String, Object>> sessions = jdbcTemplate.queryForList("""
                 SELECT s.id AS sessionId, s.session_no AS sessionNo, s.start_at AS startedAt,
                        m.name AS memberName, a.balance,
-                       r.price_per_hour AS pricePerHour, r.min_minutes AS minMinutes,
-                       r.billing_unit_minutes AS billingUnitMinutes,
-                       r.low_balance_threshold AS lowBalanceThreshold,
+                       COALESCE(b.price_per_hour, r.price_per_hour) AS pricePerHour,
+                       COALESCE(b.min_minutes, r.min_minutes) AS minMinutes,
+                       COALESCE(b.billing_unit_minutes, r.billing_unit_minutes) AS billingUnitMinutes,
+                       COALESCE(b.low_balance_threshold, r.low_balance_threshold) AS lowBalanceThreshold,
                        COALESCE(p.enabled, 1) AS petEnabled,
                        COALESCE(p.always_on_top, 1) AS petAlwaysOnTop,
                        COALESCE(p.show_bubble, 1) AS petShowBubble
@@ -97,6 +99,7 @@ public class ClientDeviceController {
                 JOIN member_info m ON m.id = s.member_id
                 JOIN member_account a ON a.member_id = s.member_id
                 JOIN billing_rule r ON r.id = s.billing_rule_id
+                LEFT JOIN session_billing_snapshot b ON b.session_id = s.id
                 LEFT JOIN member_pet_setting p ON p.member_id = s.member_id
                 WHERE s.device_id = ? AND s.status = 'RUNNING'
                 ORDER BY s.start_at DESC
@@ -116,17 +119,11 @@ public class ClientDeviceController {
 
         Map<String, Object> session = sessions.get(0);
         Object startedAtValue = session.get("startedAt");
-        LocalDateTime startedAt = startedAtValue instanceof LocalDateTime localDateTime
-                ? localDateTime
-                : ((java.sql.Timestamp) startedAtValue).toLocalDateTime();
-        long durationMinutes = Math.max(1, Duration.between(startedAt, LocalDateTime.now()).toMinutes());
+        LocalDateTime startedAt = SessionBilling.dateTime(startedAtValue);
+        long durationMinutes = SessionBilling.minutes(startedAt, LocalDateTime.now());
         int minimumMinutes = ((Number) session.get("minMinutes")).intValue();
         int unitMinutes = ((Number) session.get("billingUnitMinutes")).intValue();
-        long chargedMinutes = Math.max(durationMinutes, minimumMinutes);
-        long units = (chargedMinutes + unitMinutes - 1) / unitMinutes;
-        BigDecimal amount = ((BigDecimal) session.get("pricePerHour"))
-                .multiply(BigDecimal.valueOf(units * unitMinutes))
-                .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
+        BigDecimal amount = SessionBilling.amount((BigDecimal) session.get("pricePerHour"), minimumMinutes, unitMinutes, durationMinutes);
         BigDecimal balance = (BigDecimal) session.get("balance");
         BigDecimal threshold = (BigDecimal) session.get("lowBalanceThreshold");
 

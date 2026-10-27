@@ -1,5 +1,7 @@
 # Repository Workflow
 
+Current cross-computer update command: `npm run sync` (or `scripts/update-project.ps1 -Install`). It fetches the current branch, requires a fast-forward merge, installs locked dependencies and downloads checksum-verified face models. Commit local tracked edits first; divergent branches are not overwritten. Restart services after updating and compare `git log -1 --oneline` on both computers. Database contents, biometric profiles and local environment settings are not stored in Git. Follow the upgrade and shared-server instructions in `开发文档/20_导师问题整改与演示验收.md`.
+
 ## 1. Current Repository State
 
 This project is managed as a single repository containing:

@@ -1,6 +1,6 @@
 <template>
   <section class="page portal-page">
-    <div class="page-header"><div><h1 class="page-title">故障反馈</h1><p class="page-subtitle">设备问题会同步到超级管理员的维修维护队列。</p></div></div>
+    <div class="page-header"><div><h1 class="page-title">故障反馈</h1><p class="page-subtitle">仅可报修本人当前使用的机位，其他设备问题请联系前台。</p></div></div>
     <div class="support-grid">
       <section class="panel">
         <div class="panel-header"><h2>提交设备问题</h2></div>
@@ -42,11 +42,12 @@ const submitting = ref(false)
 const form = reactive<{ deviceId?: number, description: string }>({ description: '' })
 onMounted(load)
 async function load() {
-  const [devicesRes, faultsRes] = await Promise.all([
+  const [devicesRes, faultsRes, overviewRes] = await Promise.all([
     http.get<ApiResponse<any[]>>('/portal/devices'),
-    http.get<ApiResponse<any[]>>('/portal/faults')
+    http.get<ApiResponse<any[]>>('/portal/faults'),
+    http.get<ApiResponse<any>>('/portal/overview')
   ])
-  devices.value = devicesRes.data.data
+  devices.value = devicesRes.data.data.filter(d => d.deviceCode === overviewRes.data.data.currentSession?.deviceCode)
   faults.value = faultsRes.data.data
   form.deviceId ??= devices.value.find((item) => item.status === 'FAULT')?.id ?? devices.value[0]?.id
 }
@@ -61,7 +62,7 @@ async function submit() {
     ElMessage.success('反馈已提交，管理员端已同步')
     form.description = ''
     await load()
-  } finally { submitting.value = false }
+  } catch (e: any) { ElMessage.error(e.response?.data?.message ?? '反馈提交失败') } finally { submitting.value = false }
 }
 function formatDate(value: string) { return value ? value.replace('T', ' ').slice(0, 16) : '-' }
 </script>

@@ -658,11 +658,12 @@ INSERT INTO sys_role_permission (role_id, permission_id) VALUES
 INSERT IGNORE INTO billing_rule (id, rule_name, price_per_hour, min_minutes, billing_unit_minutes, low_balance_threshold) VALUES
   (1, '默认计费规则', 10.00, 15, 15, 10.00),
   (2, 'VIP 包间规则', 18.00, 30, 15, 20.00),
-  (3, '包夜规则', 50.00, 360, 360, 10.00),
+  (3, '长时段规则（按小时计费）', 50.00, 360, 360, 10.00),
   (4, '单人豪华包房', 22.00, 30, 15, 20.00),
   (5, '双人包房', 36.00, 30, 15, 30.00),
   (6, '四人包房', 62.00, 60, 30, 50.00),
-  (7, '五人包房', 78.00, 60, 30, 60.00);
+  (7, '五人包房', 78.00, 60, 30, 60.00),
+  (8, '大厅B区规则', 12.00, 15, 15, 10.00);
 
 INSERT INTO member_info (id, member_no, name, phone, id_card_no, level, status) VALUES
   (1, 'M0001', '张三', '13800000001', 'MASKED-0001', 'NORMAL', 'ACTIVE'),
@@ -852,13 +853,13 @@ VALUES
   (19, 'PC-A08', '大厅A区', 'LOBBY_A', 1, 10.00, 'A08', '192.168.1.108', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
   (7, 'PC-B01', '大厅B区', 'LOBBY_B', 1, 12.00, 'B01', '192.168.1.121', 'RTX 4070 / 32G / 高刷屏', 'IN_USE'),
   (8, 'PC-B02', '大厅B区', 'LOBBY_B', 1, 12.00, 'B02', '192.168.1.122', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
-  (9, 'PC-B03', '大厅B区', 'LOBBY_B', 1, 12.00, 'B03', '192.168.1.123', 'RTX 4070 / 32G / 高刷屏', 'IN_USE'),
+  (9, 'PC-B03', '大厅B区', 'LOBBY_B', 1, 12.00, 'B03', '192.168.1.123', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
   (20, 'PC-B04', '大厅B区', 'LOBBY_B', 1, 12.00, 'B04', '192.168.1.124', 'RTX 4060 / 32G / 曲面屏', 'IDLE'),
   (21, 'PC-B05', '大厅B区', 'LOBBY_B', 1, 12.00, 'B05', '192.168.1.125', 'RTX 3060 / 16G / 普通外设', 'FAULT'),
   (22, 'PC-B06', '大厅B区', 'LOBBY_B', 1, 12.00, 'B06', '192.168.1.126', 'RTX 4070 / 32G / 高刷屏', 'IDLE'),
   (10, 'PC-SVIP01', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S01', '192.168.1.151', 'RTX 4080 / 64G / 静音包房', 'IDLE'),
   (11, 'PC-SVIP02', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S02', '192.168.1.152', 'RTX 4080 / 64G / 静音包房', 'IDLE'),
-  (23, 'PC-SVIP03', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S03', '192.168.1.153', 'RTX 4080 / 64G / 降噪耳机', 'IN_USE'),
+  (23, 'PC-SVIP03', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S03', '192.168.1.153', 'RTX 4080 / 64G / 降噪耳机', 'IDLE'),
   (24, 'PC-SVIP04', '单人豪华包房', 'ROOM_SINGLE_LUXURY', 1, 22.00, 'S04', '192.168.1.154', 'RTX 4070Ti / 32G / 静音包房', 'IDLE'),
   (12, 'PC-DUO01', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D01', '192.168.1.161', '双人连坐 / RTX 4070 / 32G', 'IDLE'),
   (13, 'PC-DUO02', '双人包房', 'ROOM_DOUBLE', 2, 36.00, 'D02', '192.168.1.162', '双人连坐 / RTX 4070 / 32G', 'IDLE'),
@@ -888,13 +889,13 @@ INSERT INTO machine_session
   (id, session_no, member_id, device_id, billing_rule_id, start_at, end_at,
    duration_minutes, estimated_amount, final_amount, status, operator_id, settled_by)
 VALUES
-  (1, 'S202609020001', 1, 1, 1, '2026-09-02 18:20:00', NULL, NULL, 16.50, NULL, 'RUNNING', 3, NULL),
-  (2, 'S202609020002', 2, 5, 1, '2026-09-02 17:45:00', NULL, NULL, 22.00, NULL, 'RUNNING', 3, NULL),
+  (1, 'S202609020001', 1, 1, 1, DATE_SUB(NOW(), INTERVAL 30 MINUTE), NULL, NULL, 16.50, NULL, 'RUNNING', 3, NULL),
+  (2, 'S202609020002', 2, 5, 1, DATE_SUB(NOW(), INTERVAL 45 MINUTE), NULL, NULL, 22.00, NULL, 'RUNNING', 3, NULL),
   (3, 'S202609010012', 4, 8, 1, '2026-09-01 19:00:00', '2026-09-01 21:18:00', 138, 23.00, 23.00, 'ENDED', 3, 3),
-  (4, 'S202609020003', 5, 7, 1, '2026-09-02 19:10:00', NULL, NULL, 12.00, NULL, 'RUNNING', 3, NULL),
-  (5, 'S202609020004', 6, 25, 5, '2026-09-02 20:15:00', NULL, NULL, 36.00, NULL, 'RUNNING', 3, NULL),
-  (6, 'S202609020005', 8, 27, 6, '2026-09-02 20:05:00', NULL, NULL, 62.00, NULL, 'RUNNING', 3, NULL),
-  (7, 'S202609020006', 10, 29, 7, '2026-09-02 19:40:00', NULL, NULL, 78.00, NULL, 'RUNNING', 3, NULL),
+  (4, 'S202609020003', 5, 7, 1, DATE_SUB(NOW(), INTERVAL 20 MINUTE), NULL, NULL, 12.00, NULL, 'RUNNING', 3, NULL),
+  (5, 'S202609020004', 6, 25, 5, DATE_SUB(NOW(), INTERVAL 30 MINUTE), NULL, NULL, 36.00, NULL, 'RUNNING', 3, NULL),
+  (6, 'S202609020005', 8, 27, 6, DATE_SUB(NOW(), INTERVAL 30 MINUTE), NULL, NULL, 62.00, NULL, 'RUNNING', 3, NULL),
+  (7, 'S202609020006', 10, 29, 7, DATE_SUB(NOW(), INTERVAL 40 MINUTE), NULL, NULL, 78.00, NULL, 'RUNNING', 3, NULL),
   (8, 'S202609010013', 6, 23, 4, '2026-09-01 22:00:00', '2026-09-02 01:30:00', 210, 77.00, 77.00, 'ENDED', 3, 3),
   (9, 'S202608250011', 8, 13, 5, '2026-08-25 20:20:00', '2026-08-25 23:20:00', 180, 108.00, 108.00, 'ENDED', 3, 3),
   (10, 'S202608240009', 9, 19, 1, '2026-08-24 09:00:00', '2026-08-24 13:00:00', 240, 40.00, 40.00, 'ENDED', 3, 3)

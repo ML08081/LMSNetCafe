@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -68,8 +69,10 @@ public class DeviceController {
     }
 
     @PostMapping
+    @Transactional
     public ApiResponse<Map<String, Object>> create(@Valid @RequestBody SaveDeviceRequest request) {
         validateStatus(request.status());
+        if ("IN_USE".equals(request.status())) throw new ResponseStatusException(HttpStatus.CONFLICT, "使用中状态只能由上机流程创建");
         ensureDeviceCodeAvailable(request.deviceCode(), null);
         jdbcTemplate.update("""
                 INSERT INTO device_info
@@ -84,11 +87,13 @@ public class DeviceController {
     }
 
     @PatchMapping("/{deviceId}")
+    @Transactional
     public ApiResponse<Void> update(@PathVariable Long deviceId, @Valid @RequestBody UpdateDeviceRequest request) {
         Map<String, Object> device = requireDevice(deviceId);
         validateStatus(request.status());
         ensureDeviceCodeAvailable(request.deviceCode(), deviceId);
         ensureMutableStatus((String) device.get("status"), request.status());
+        ensureNoOpenFault(deviceId, request.status());
         jdbcTemplate.update("""
                 UPDATE device_info
                 SET device_code = ?, area = ?, area_type = ?, room_capacity = ?, hourly_rate_hint = ?,
@@ -101,21 +106,23 @@ public class DeviceController {
     }
 
     @PatchMapping("/{deviceId}/status")
+    @Transactional
     public ApiResponse<Void> updateStatus(@PathVariable Long deviceId, @Valid @RequestBody StatusRequest request) {
         Map<String, Object> device = requireDevice(deviceId);
         validateStatus(request.status());
         ensureMutableStatus((String) device.get("status"), request.status());
+        ensureNoOpenFault(deviceId, request.status());
         jdbcTemplate.update("UPDATE device_info SET status = ? WHERE id = ? AND deleted = 0", request.status(), deviceId);
         return ApiResponse.success(null);
     }
 
     @PostMapping("/{deviceId}/faults")
+    @Transactional
     public ApiResponse<Void> createFault(
             @PathVariable Long deviceId,
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody FaultRequest request) {
         Map<String, Object> device = requireDevice(deviceId);
-        ensureMutableStatus((String) device.get("status"), "FAULT");
         jdbcTemplate.update("""
                 INSERT INTO device_fault (device_id, fault_type, description, status, reported_by)
                 VALUES (?, ?, ?, 'OPEN', ?)
@@ -126,7 +133,7 @@ public class DeviceController {
 
     private Map<String, Object> requireDevice(Long deviceId) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, status FROM device_info WHERE id = ? AND deleted = 0", deviceId);
+                "SELECT id, status FROM device_info WHERE id = ? AND deleted = 0 FOR UPDATE", deviceId);
         if (rows.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "设备不存在");
         }
@@ -144,8 +151,22 @@ public class DeviceController {
     }
 
     private void ensureMutableStatus(String currentStatus, String nextStatus) {
+        if (!"IN_USE".equals(currentStatus) && "IN_USE".equals(nextStatus)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "使用中状态只能由上机流程创建");
+        }
         if ("IN_USE".equals(currentStatus) && !"IN_USE".equals(nextStatus)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "设备正在使用中，请先完成下机结算");
+        }
+    }
+
+    private void ensureNoOpenFault(Long deviceId, String nextStatus) {
+        if (!"IDLE".equals(nextStatus)) return;
+        Integer open = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM device_fault WHERE device_id = ? AND status <> 'RESOLVED'", Integer.class, deviceId);
+        Integer running = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM machine_session WHERE device_id = ? AND status = 'RUNNING'", Integer.class, deviceId);
+        if ((open != null && open > 0) || (running != null && running > 0)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "机位仍有未解决故障或未结束会话");
         }
     }
 

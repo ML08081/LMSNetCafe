@@ -2,6 +2,8 @@ package com.lms.netcafe.module.member.controller;
 
 import com.lms.netcafe.common.api.ApiResponse;
 import com.lms.netcafe.common.security.AuthenticatedUser;
+import com.lms.netcafe.module.billing.service.MachineSessionService;
+import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,9 +26,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class CustomerPortalController {
 
     private final JdbcTemplate jdbcTemplate;
+    private final MachineSessionService sessions;
 
-    public CustomerPortalController(JdbcTemplate jdbcTemplate) {
+    public CustomerPortalController(JdbcTemplate jdbcTemplate, MachineSessionService sessions) {
         this.jdbcTemplate = jdbcTemplate;
+        this.sessions = sessions;
     }
 
     @GetMapping("/overview")
@@ -40,7 +44,7 @@ public class CustomerPortalController {
                 WHERE m.id = ? AND m.deleted = 0
                 """, memberId);
         List<Map<String, Object>> running = jdbcTemplate.queryForList("""
-                SELECT s.session_no AS sessionNo, d.device_code AS deviceCode, d.area, d.seat_no AS seatNo,
+                SELECT s.id, s.session_no AS sessionNo, d.device_code AS deviceCode, d.area, d.seat_no AS seatNo,
                        s.start_at AS startAt,
                        TIMESTAMPDIFF(MINUTE, s.start_at, NOW()) AS durationMinutes,
                        s.estimated_amount AS estimatedAmount, s.status
@@ -121,6 +125,33 @@ public class CustomerPortalController {
                 """));
     }
 
+    @PostMapping("/sessions/start")
+    public ApiResponse<Map<String, Object>> startSession(
+            @AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody SelfStartRequest request) {
+        requireMemberId(user);
+        return sessions.startForMember(user, request.deviceId(), request.billingRuleId());
+    }
+
+    @PostMapping("/sessions/{sessionId}/settle")
+    public ApiResponse<Map<String, Object>> settleSession(
+            @AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long sessionId) {
+        Long memberId = requireMemberId(user);
+        Integer owned = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM machine_session WHERE id = ? AND member_id = ?", Integer.class, sessionId, memberId);
+        if (owned == null || owned == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "会话不存在");
+        return sessions.settle(sessionId, user);
+    }
+
+    @GetMapping("/sessions/{sessionId}/preview")
+    public ApiResponse<Map<String, Object>> previewSession(
+            @AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long sessionId) {
+        Long memberId = requireMemberId(user);
+        Integer owned = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM machine_session WHERE id = ? AND member_id = ?", Integer.class, sessionId, memberId);
+        if (owned == null || owned == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "会话不存在");
+        return sessions.preview(sessionId);
+    }
+
     @GetMapping("/faults")
     public ApiResponse<List<Map<String, Object>>> faults(@AuthenticationPrincipal AuthenticatedUser user) {
         requireMemberId(user);
@@ -142,11 +173,15 @@ public class CustomerPortalController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody FaultRequest request) {
         requireMemberId(user);
-        Integer deviceCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM device_info WHERE id = ? AND deleted = 0", Integer.class, request.deviceId());
-        if (deviceCount == null || deviceCount == 0) {
+        List<Long> devices = jdbcTemplate.queryForList(
+                "SELECT id FROM device_info WHERE id = ? AND deleted = 0 FOR UPDATE", Long.class, request.deviceId());
+        if (devices.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "设备不存在");
         }
+        Integer owned = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM machine_session WHERE member_id = ? AND device_id = ? AND status = 'RUNNING'",
+                Integer.class, user.memberId(), request.deviceId());
+        if (owned == null || owned == 0) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能报修本人当前使用的机位，请联系前台处理其他设备");
         jdbcTemplate.update("""
                 INSERT INTO device_fault (device_id, fault_type, description, status, reported_by)
                 VALUES (?, 'USER_REPORT', ?, 'OPEN', ?)
@@ -177,4 +212,5 @@ public class CustomerPortalController {
 
     public record FaultRequest(@NotNull Long deviceId, @NotBlank String description) {
     }
+    public record SelfStartRequest(@NotNull Long deviceId, @NotNull Long billingRuleId) {}
 }

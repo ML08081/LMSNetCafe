@@ -19,7 +19,7 @@
       </el-form>
 
       <div v-else class="face-login-pane">
-        <CameraCapture :key="cameraKey" action-label="拍照并登录" @captured="submitFace" />
+        <CameraCapture :key="cameraKey" :disabled="loading" action-label="拍照并登录" @captured="submitFace" />
         <p class="face-privacy">照片仅用于本次识别，不保存登录抓拍原图。</p>
       </div>
 
@@ -60,6 +60,7 @@ async function submitPassword() {
 }
 
 async function submitFace(image: Blob) {
+  if (loading.value) return
   loading.value = true
   try {
     await auth.faceLogin(image)

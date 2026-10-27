@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -52,6 +53,18 @@ public class FaceServiceClient {
                     .toBodilessEntity();
         } catch (RestClientException ignored) {
             // The database profile remains the source of truth during a temporary service outage.
+        }
+    }
+
+    public Map<String, Object> health() {
+        try {
+            String body = restClient.get().uri("/face-service/health").retrieve().body(String.class);
+            JsonNode node = objectMapper.readTree(body);
+            return Map.of("ready", node.path("ready").asBoolean(false),
+                    "message", node.path("message").asText(""),
+                    "profilesRequiringEnrollment", node.path("profilesRequiringEnrollment").asInt(0));
+        } catch (Exception ex) {
+            return Map.of("ready", false, "message", "人脸服务未就绪，请检查 9000 端口和服务日志");
         }
     }
 
