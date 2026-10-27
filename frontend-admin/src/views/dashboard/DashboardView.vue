@@ -5,7 +5,7 @@
         <h1 class="page-title">经营看板</h1>
         <p class="page-subtitle">今日门店运营、机位状态和风险提醒集中查看。</p>
       </div>
-      <el-date-picker type="date" placeholder="选择日期" />
+      <el-button v-if="auth.hasPermission('statistics:view')" type="primary" @click="router.push('/ai/daily-report')">AI 经营日报</el-button>
     </div>
 
     <div v-loading="loading" class="metric-grid">
@@ -70,6 +70,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { http } from '../../api/http'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
+const router = useRouter()
+const auth = useAuthStore()
 
 interface ApiResponse<T> {
   data: T

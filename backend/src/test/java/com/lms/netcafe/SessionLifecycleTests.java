@@ -43,10 +43,10 @@ class SessionLifecycleTests {
 
     @BeforeEach void seed() {
         for (String table : List.of("repair_record", "member_account_flow", "consume_record", "session_billing_snapshot", "machine_session", "device_fault", "billing_rule", "device_info", "member_account", "member_info")) db.update("DELETE FROM " + table);
-        db.update("INSERT INTO member_info VALUES (1,'M1','会员1','ACTIVE',0),(2,'M2','会员2','ACTIVE',0)");
+        db.update("INSERT INTO member_info (id,member_no,name,status,deleted) VALUES (1,'M1','会员1','ACTIVE',0),(2,'M2','会员2','ACTIVE',0)");
         db.update("INSERT INTO member_account (member_id,balance) VALUES (1,100),(2,100)");
         db.update("INSERT INTO device_info VALUES (1,'PC1','A1','IDLE',0,10,'大厅'),(2,'PC2','A2','IDLE',0,10,'大厅')");
-        db.update("INSERT INTO billing_rule VALUES (1,10,15,15,10,'ENABLED')");
+        db.update("INSERT INTO billing_rule (id,price_per_hour,min_minutes,billing_unit_minutes,low_balance_threshold,status) VALUES (1,10,15,15,10,'ENABLED')");
     }
     long start(long member, long device) {
         return ((Number) sessions.start(operator, new StartSessionRequest(member, device, 1L, false)).data().get("sessionId")).longValue();

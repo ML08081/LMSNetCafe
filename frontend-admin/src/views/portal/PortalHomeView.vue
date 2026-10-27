@@ -63,6 +63,7 @@
       <section class="panel">
         <div class="panel-header"><h2>常用服务</h2></div>
         <div class="portal-actions">
+          <button @click="router.push('/portal/assistant')"><el-icon><Service /></el-icon><span>智能服务助手</span></button>
           <button @click="router.push('/portal/services')"><el-icon><ShoppingCart /></el-icon><span>呼叫与点餐</span></button>
           <button @click="router.push('/portal/account')"><el-icon><Wallet /></el-icon><span>余额明细</span></button>
           <button @click="router.push('/portal/devices')"><el-icon><MapLocation /></el-icon><span>查看机位</span></button>
@@ -116,7 +117,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { MapLocation, ShoppingCart, Wallet } from '@element-plus/icons-vue'
+import { MapLocation, Service, ShoppingCart, Wallet } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { http } from '../../api/http'

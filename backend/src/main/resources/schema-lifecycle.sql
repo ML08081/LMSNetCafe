@@ -8,3 +8,15 @@ CREATE TABLE IF NOT EXISTS session_billing_snapshot (
   auth_method VARCHAR(20) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS ai_daily_report (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  report_date DATE NOT NULL UNIQUE,
+  metrics_json LONGTEXT NOT NULL,
+  analysis TEXT NOT NULL,
+  generation_mode VARCHAR(20) NOT NULL,
+  model_name VARCHAR(200) NOT NULL,
+  notice VARCHAR(500) NOT NULL,
+  generated_by BIGINT NOT NULL,
+  generated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

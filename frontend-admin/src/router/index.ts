@@ -5,6 +5,8 @@ import DashboardView from '../views/dashboard/DashboardView.vue'
 import WorkbenchView from '../views/workbench/WorkbenchView.vue'
 
 export const moduleRoutes = [
+  { path: 'ai/daily-report', name: 'ai-daily-report', component: () => import('../views/statistics/AiDailyReportView.vue'), meta: { title: 'AI 经营日报', permission: 'statistics:view', icon: 'DataAnalysis' } },
+  { path: 'portal/assistant', name: 'portal-assistant', component: () => import('../views/portal/PortalAssistantView.vue'), meta: { title: '智能服务助手', permission: 'portal:home', icon: 'Service' } },
   { path: '', name: 'dashboard', component: DashboardView, meta: { title: '经营看板', permission: 'dashboard:view', icon: 'Monitor' } },
   { path: 'workbench', name: 'workbench', component: WorkbenchView, meta: { title: '前台工作台', permission: 'workbench:view', icon: 'Tickets' } },
   { path: 'members', name: 'members', component: () => import('../views/member/MemberView.vue'), meta: { title: '会员管理', permission: 'member:manage', icon: 'User' } },
