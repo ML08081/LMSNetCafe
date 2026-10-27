@@ -4,7 +4,11 @@ $failed = $false
 try {
   $health = (Invoke-RestMethod "$BackendUrl/api/v1/health" -TimeoutSec 20).data
   Write-Host "Backend: $($health.status); Database: $($health.databaseReady); Face models: $($health.face.ready)"
-  if ($health.status -ne 'UP') { $failed = $true; Write-Warning $health.face.message }
+  if ($health.status -ne 'UP' -or $health.databaseReady -ne $true -or $health.face.ready -ne $true) {
+    $failed = $true
+    Write-Warning 'Database/model checks did not pass. If older services are running, stop and restart this project after updating.'
+    if ($health.face.message) { Write-Warning $health.face.message }
+  }
   if ($health.face.profilesRequiringEnrollment -gt 0) {
     Write-Warning 'Legacy biometric profiles detected. Re-enroll these users before the face demonstration.'
   }

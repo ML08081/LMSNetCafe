@@ -43,12 +43,12 @@ do {
   try {
     $health = (Invoke-RestMethod 'http://127.0.0.1:8080/api/v1/health' -TimeoutSec 2).data
     $page = Invoke-WebRequest 'http://127.0.0.1:5173/login' -UseBasicParsing -TimeoutSec 2
-    $ready = $health.status -eq 'UP' -and $page.StatusCode -eq 200
+    $ready = $health.status -eq 'UP' -and $health.databaseReady -eq $true -and $health.face.ready -eq $true -and $page.StatusCode -eq 200
   } catch { $ready = $false }
   if (-not $ready) { Start-Sleep -Seconds 2 }
 } while (-not $ready -and (Get-Date) -lt $deadline)
 Write-Host 'Local camera login: http://localhost:5173/login'
 Write-Host "LAN login: http://$HostIp`:5173/login (camera access requires localhost or HTTPS)"
 Write-Host "Logs: $logRoot"
-if (-not $ready) { throw 'Services are not ready. Check MySQL, .env, face models and logs, then run scripts/check-demo.ps1.' }
+if (-not $ready) { throw 'Services are not ready. Restart any older project services first; then check MySQL, .env, face models and logs with scripts/check-demo.ps1.' }
 Write-Host 'All application readiness checks passed.'
