@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS member_info (id BIGINT PRIMARY KEY, member_no VARCHAR(40), name VARCHAR(40), status VARCHAR(20), deleted INT DEFAULT 0);
 CREATE TABLE IF NOT EXISTS member_account (member_id BIGINT PRIMARY KEY, balance DECIMAL(10,2), total_consume DECIMAL(10,2) DEFAULT 0, version INT DEFAULT 0);
-CREATE TABLE IF NOT EXISTS device_info (id BIGINT PRIMARY KEY, device_code VARCHAR(40), seat_no VARCHAR(40), status VARCHAR(20), deleted INT DEFAULT 0, hourly_rate_hint DECIMAL(10,2));
+CREATE TABLE IF NOT EXISTS device_info (id BIGINT PRIMARY KEY, device_code VARCHAR(40), seat_no VARCHAR(40), status VARCHAR(20), deleted INT DEFAULT 0, hourly_rate_hint DECIMAL(10,2), area VARCHAR(40));
 CREATE TABLE IF NOT EXISTS billing_rule (id BIGINT PRIMARY KEY, price_per_hour DECIMAL(10,2), min_minutes INT, billing_unit_minutes INT, low_balance_threshold DECIMAL(10,2), status VARCHAR(20));
 CREATE TABLE IF NOT EXISTS machine_session (id BIGINT AUTO_INCREMENT PRIMARY KEY, session_no VARCHAR(64) UNIQUE, member_id BIGINT, device_id BIGINT, billing_rule_id BIGINT, start_at TIMESTAMP, end_at TIMESTAMP, duration_minutes INT, estimated_amount DECIMAL(10,2), final_amount DECIMAL(10,2), status VARCHAR(20), operator_id BIGINT, settled_by BIGINT, version INT DEFAULT 0);
 CREATE TABLE IF NOT EXISTS consume_record (id BIGINT AUTO_INCREMENT PRIMARY KEY, consume_no VARCHAR(64) UNIQUE, member_id BIGINT, session_id BIGINT, consume_type VARCHAR(20), amount DECIMAL(10,2), balance_after DECIMAL(10,2), operator_id BIGINT);

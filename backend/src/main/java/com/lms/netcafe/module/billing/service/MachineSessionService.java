@@ -38,6 +38,11 @@ public class MachineSessionService {
         return ApiResponse.success(querySessions("WHERE s.status = 'RUNNING'"));
     }
 
+    public List<Map<String, Object>> forMember(Long memberId, boolean runningOnly) {
+        return querySessions("WHERE s.member_id = " + memberId.longValue()
+                + (runningOnly ? " AND s.status = 'RUNNING'" : ""));
+    }
+
     public ApiResponse<Map<String, Object>> diagnostics() {
         return ApiResponse.success(Map.of(
                 "staleSessions", jdbcTemplate.queryForList("""
@@ -151,7 +156,8 @@ public class MachineSessionService {
             Long sessionId,
             AuthenticatedUser user) {
         Map<String, Object> session = requireRow("""
-                SELECT member_id, device_id, start_at, status, billing_rule_id
+                SELECT member_id, device_id, start_at, status, billing_rule_id,
+                       TIMESTAMPDIFF(SECOND, start_at, NOW()) AS elapsed_seconds
                 FROM machine_session WHERE id = ? FOR UPDATE
                 """, sessionId, "会话不存在");
         if (!"RUNNING".equals(session.get("status"))) {
@@ -171,7 +177,7 @@ public class MachineSessionService {
         session.putAll(rate);
         Long memberId = ((Number) session.get("member_id")).longValue();
         Long deviceId = ((Number) session.get("device_id")).longValue();
-        long actualMinutes = SessionBilling.minutes(session.get("start_at"), LocalDateTime.now());
+        long actualMinutes = SessionBilling.minutesFromSeconds(((Number) session.get("elapsed_seconds")).longValue());
         int minMinutes = ((Number) session.get("min_minutes")).intValue();
         int unitMinutes = ((Number) session.get("billing_unit_minutes")).intValue();
         BigDecimal amount = SessionBilling.amount((BigDecimal) session.get("price_per_hour"), minMinutes, unitMinutes, actualMinutes);
@@ -228,8 +234,10 @@ public class MachineSessionService {
                   d.device_code AS deviceCode,
                   d.seat_no AS seatNo,
                   s.start_at AS startAt,
+                  d.area,
                   s.end_at AS endAt,
                   TIMESTAMPDIFF(MINUTE, s.start_at, COALESCE(s.end_at, NOW())) AS durationMinutes,
+                  TIMESTAMPDIFF(SECOND, s.start_at, COALESCE(s.end_at, NOW())) AS elapsedSeconds,
                   s.estimated_amount AS estimatedAmount,
                   s.final_amount AS finalAmount,
                   a.balance,
@@ -250,7 +258,7 @@ public class MachineSessionService {
                 """.formatted(condition));
         for (Map<String, Object> row : rows) {
             if ("RUNNING".equals(row.get("status"))) {
-                long minutes = SessionBilling.minutes(row.get("startAt"), LocalDateTime.now());
+                long minutes = SessionBilling.minutesFromSeconds(((Number) row.get("elapsedSeconds")).longValue());
                 BigDecimal amount = SessionBilling.amount((BigDecimal) row.get("pricePerHour"),
                         ((Number) row.get("minMinutes")).intValue(), ((Number) row.get("billingUnitMinutes")).intValue(), minutes);
                 row.put("durationMinutes", minutes);

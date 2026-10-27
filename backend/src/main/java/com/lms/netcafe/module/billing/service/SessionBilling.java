@@ -18,8 +18,11 @@ public final class SessionBilling {
     }
 
     public static long minutes(Object start, LocalDateTime now) {
-        long seconds = Math.max(0, Duration.between(dateTime(start), now).getSeconds());
-        return Math.max(1, (seconds + 59) / 60);
+        return minutesFromSeconds(Duration.between(dateTime(start), now).getSeconds());
+    }
+
+    public static long minutesFromSeconds(long seconds) {
+        return Math.max(1, (Math.max(0, seconds) + 59) / 60);
     }
 
     public static BigDecimal amount(BigDecimal hourly, int minimum, int unit, long minutes) {

@@ -43,17 +43,7 @@ public class CustomerPortalController {
                 JOIN member_account a ON a.member_id = m.id
                 WHERE m.id = ? AND m.deleted = 0
                 """, memberId);
-        List<Map<String, Object>> running = jdbcTemplate.queryForList("""
-                SELECT s.id, s.session_no AS sessionNo, d.device_code AS deviceCode, d.area, d.seat_no AS seatNo,
-                       s.start_at AS startAt,
-                       TIMESTAMPDIFF(MINUTE, s.start_at, NOW()) AS durationMinutes,
-                       s.estimated_amount AS estimatedAmount, s.status
-                FROM machine_session s
-                JOIN device_info d ON d.id = s.device_id
-                WHERE s.member_id = ? AND s.status = 'RUNNING'
-                ORDER BY s.start_at DESC
-                LIMIT 1
-                """, memberId);
+        List<Map<String, Object>> running = sessions.forMember(memberId, true);
         Integer availableDevices = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM device_info WHERE status = 'IDLE' AND deleted = 0", Integer.class);
 
@@ -87,16 +77,7 @@ public class CustomerPortalController {
 
     @GetMapping("/sessions")
     public ApiResponse<List<Map<String, Object>>> sessions(@AuthenticationPrincipal AuthenticatedUser user) {
-        return ApiResponse.success(jdbcTemplate.queryForList("""
-                SELECT s.session_no AS sessionNo, d.device_code AS deviceCode, d.area, d.seat_no AS seatNo,
-                       s.start_at AS startAt, s.end_at AS endAt,
-                       TIMESTAMPDIFF(MINUTE, s.start_at, COALESCE(s.end_at, NOW())) AS durationMinutes,
-                       s.estimated_amount AS estimatedAmount, s.final_amount AS finalAmount, s.status
-                FROM machine_session s
-                JOIN device_info d ON d.id = s.device_id
-                WHERE s.member_id = ?
-                ORDER BY s.start_at DESC
-                """, requireMemberId(user)));
+        return ApiResponse.success(sessions.forMember(requireMemberId(user), false));
     }
 
     @GetMapping("/devices")

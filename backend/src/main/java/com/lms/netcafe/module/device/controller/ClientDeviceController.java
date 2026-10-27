@@ -87,6 +87,7 @@ public class ClientDeviceController {
         Map<String, Object> client = requireClient(deviceCode, token);
         List<Map<String, Object>> sessions = jdbcTemplate.queryForList("""
                 SELECT s.id AS sessionId, s.session_no AS sessionNo, s.start_at AS startedAt,
+                       TIMESTAMPDIFF(SECOND, s.start_at, NOW()) AS elapsedSeconds,
                        m.name AS memberName, a.balance,
                        COALESCE(b.price_per_hour, r.price_per_hour) AS pricePerHour,
                        COALESCE(b.min_minutes, r.min_minutes) AS minMinutes,
@@ -120,7 +121,7 @@ public class ClientDeviceController {
         Map<String, Object> session = sessions.get(0);
         Object startedAtValue = session.get("startedAt");
         LocalDateTime startedAt = SessionBilling.dateTime(startedAtValue);
-        long durationMinutes = SessionBilling.minutes(startedAt, LocalDateTime.now());
+        long durationMinutes = SessionBilling.minutesFromSeconds(((Number) session.get("elapsedSeconds")).longValue());
         int minimumMinutes = ((Number) session.get("minMinutes")).intValue();
         int unitMinutes = ((Number) session.get("billingUnitMinutes")).intValue();
         BigDecimal amount = SessionBilling.amount((BigDecimal) session.get("pricePerHour"), minimumMinutes, unitMinutes, durationMinutes);
