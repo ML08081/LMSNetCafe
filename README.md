@@ -64,6 +64,8 @@ npm run dev
 
 摄像头必须在本机 `http://localhost:5173` 或 HTTPS 下使用。另一台电脑可以运行本地前端代理，将 `BackendBaseUrl` 指向主机后端，再在本机 localhost 打开页面。人脸照片选择入口不代表活体检测。上机表示创建计费会话，桌宠轮询展示状态，不包含硬件开机或 Windows 锁屏控制。
 
+数据库已在 WSL 中时，在本机 `.env` 设置 `WSL_DISTRO=Ubuntu`（改成实际发行版名称）。`npm run start:lan` 会启动该发行版已有的 MySQL，并保持 WSL 会话，避免空闲退出导致数据库断连；不会创建或重置数据库。其他电脑没有使用 WSL 时留空该项。
+
 ## Verification
 
 ```powershell

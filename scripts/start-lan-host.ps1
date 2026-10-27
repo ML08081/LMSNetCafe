@@ -9,6 +9,15 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $logRoot = Join-Path $repo '.dev-logs'
 New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
+# Opt in to an existing WSL MySQL installation through local configuration.
+$wslDistro = $env:WSL_DISTRO
+$resolvedEnv = if ([System.IO.Path]::IsPathRooted($EnvFile)) { $EnvFile } else { Join-Path $repo $EnvFile }
+if (-not $wslDistro -and (Test-Path -LiteralPath $resolvedEnv)) {
+  foreach ($line in Get-Content -LiteralPath $resolvedEnv) {
+    if ($line -match '^\s*WSL_DISTRO\s*=\s*(.*?)\s*$') { $wslDistro = $Matches[1].Trim('"').Trim("'") }
+  }
+}
+if ($wslDistro) { & (Join-Path $PSScriptRoot 'start-wsl-database.ps1') -Distro $wslDistro }
 foreach ($entry in @{DbHost='DB_HOST';DbPort='DB_PORT';DbName='DB_NAME';DbUser='DB_USER';DbPassword='DB_PASSWORD'}.GetEnumerator()) {
   if ($PSBoundParameters.ContainsKey($entry.Key)) { [Environment]::SetEnvironmentVariable($entry.Value, (Get-Variable $entry.Key -ValueOnly), 'Process') }
 }
@@ -20,7 +29,11 @@ if (-not $HostIp) {
 }
 $registry = Join-Path $logRoot 'processes.json'
 $owned = @()
-if (Test-Path -LiteralPath $registry) { $owned = @(Get-Content -LiteralPath $registry -Raw | ConvertFrom-Json) }
+if (Test-Path -LiteralPath $registry) {
+  foreach ($entry in (Get-Content -LiteralPath $registry -Raw | ConvertFrom-Json)) {
+    if ($entry.Name -and $entry.Id) { $owned += [pscustomobject]@{Name=[string]$entry.Name;Id=[int]$entry.Id;Started=[string]$entry.Started} }
+  }
+}
 function Start-ServiceProcess([string]$Name, [int]$Port, [string[]]$Options) {
   if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
     Write-Host "$Name already listening on $Port; readiness will be checked."
@@ -30,7 +43,7 @@ function Start-ServiceProcess([string]$Name, [int]$Port, [string[]]$Options) {
   $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $launcher + '"'),'-DevToolsRoot',('"' + $DevToolsRoot + '"'),'-EnvFile',('"' + $EnvFile + '"')) + $Options
   $process = Start-Process powershell.exe -ArgumentList $arguments -WorkingDirectory $repo -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $logRoot "$Name.out.log") -RedirectStandardError (Join-Path $logRoot "$Name.err.log")
   $script:owned += [pscustomobject]@{Name=$Name;Id=$process.Id;Started=$process.StartTime.ToUniversalTime().ToString('o')}
-  ConvertTo-Json -InputObject @($script:owned) | Set-Content -LiteralPath $registry -Encoding UTF8
+  $script:owned | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $registry -Encoding UTF8
   Write-Host "Starting $Name on $Port"
 }
 Start-ServiceProcess 'face' 9000 @('-Face','-FaceBindHost','127.0.0.1')
